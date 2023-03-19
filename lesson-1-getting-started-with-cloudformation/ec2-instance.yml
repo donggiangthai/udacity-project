@@ -1,0 +1,54 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: Create an EC2 instance
+
+Parameters:
+    AMIId:
+        Type: AWS::EC2::Image::Id
+        Description: "Amazon Linux 2023 AMI"
+        Default: "ami-02f3f602d23f1659d"
+    InstanceType:
+        Type: String
+        Description: "EC2 instance type"
+        AllowedValues:
+            - t2.micro
+            - t3.micro
+        Default: t3.micro
+    KeyPair:
+        Type: AWS::EC2::KeyPair::KeyName
+        Description: "AWS key pair"
+        Default: "ThaiDG-IaC"
+    InstanceProfile:
+        Type: String
+        Description: "EC2 instance profile"
+        Default: "ThaiDG-ec2-role"
+    VpcId:
+        Type: AWS::EC2::VPC::Id
+        Description: "AWS VPC Id for us-east-1"
+        Default: "vpc-036ec0f322307a86c"
+    SubnetId:
+        Type: AWS::EC2::Subnet::Id
+        Description: "AWS Subnet Id for us-east-1 public subnet"
+        Default: "subnet-0136b3ad0e065287f"
+
+Resources:
+    EC2Instance:
+        Type: AWS::EC2::Instance
+        Properties:
+            KeyName: !Ref KeyPair
+            ImageId: !Ref AMIId
+            InstanceType: !Ref InstanceType
+            IamInstanceProfile: !Ref InstanceProfile
+            NetworkInterfaces:
+                - AssociatePublicIpAddress: true
+                  DeleteOnTermination: true
+                  DeviceIndex: "0"
+                  GroupSet:
+                      - !ImportValue SecGroupId
+                  SubnetId: !Ref SubnetId
+            UserData:
+                Fn::Base64: |
+                    #!/bin/bash
+                    yum update -y
+                    yum install -y httpd.x86_64
+                    systemctl start httpd.service
+                    systemctl enable httpd.service

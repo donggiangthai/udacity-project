@@ -1,0 +1,50 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: Create a security group for EC2 instance
+Parameters:
+    VpcId:
+        Description: "AWS VPC Id"
+        Type: AWS::EC2::VPC::Id
+        Default: vpc-036ec0f322307a86c
+
+Mappings:
+    AWSAMIRegionMap:
+        AMI:
+            AL2023: "Amazon Linux 2023 AMI"
+        us-east-1:
+            AL2023: "ami-02f3f602d23f1659d"
+
+Resources:
+    SecGroupName:
+        Type: AWS::EC2::SecurityGroup
+        Properties:
+            GroupName: "ThaiDG-sg-for-challenge-1"
+            GroupDescription: "The security group for challenge 1 that allow ingress to TCP 80 only and unrestricted to egress"
+            VpcId: !Ref VpcId
+            Tags:
+                - Key: "Core"
+                  Value: "Deploy Infrastruture as Code"
+    OutboundRule:
+        Type: AWS::EC2::SecurityGroupEgress
+        Properties:
+            GroupId: !Ref SecGroupName
+            IpProtocol: "-1"
+            FromPort: -1
+            ToPort: -1
+            CidrIp: "0.0.0.0/0"
+            Description: "Allow all egress traffic"
+    InboundRule:
+        Type: AWS::EC2::SecurityGroupIngress
+        Properties:
+            GroupId: !Ref SecGroupName
+            IpProtocol: "tcp"
+            FromPort: 80
+            ToPort: 80
+            CidrIp: "0.0.0.0/0"
+            Description: "Allow all ingress traffic of port 80"
+
+Outputs:
+    SecGroupId:
+        Description: "Output the security group id"
+        Value: !Ref SecGroupName
+        Export:
+            Name: SecGroupId
