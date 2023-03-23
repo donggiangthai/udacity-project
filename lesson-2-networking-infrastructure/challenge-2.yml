@@ -1,0 +1,197 @@
+Description: >
+    ThaiDG
+
+Parameters:
+    EnvironmentName:
+        Description: "An environment name that will be prefixed to resource names"
+        Type: String
+        Default: ""
+
+    VpcCIDR:
+        Description: "VPC range"
+        Type: String
+        Default: ""
+
+    PublicSubnetCIDR:
+        Description: "Public subnet CIDR block"
+        Type: String
+        Default: ""
+
+    PrivateSubnetCIDR:
+        Description: "Private subnet CIDR block"
+        Type: String
+        Default: ""
+
+Resources:
+    VPC:
+        Type: AWS::EC2::VPC
+        Properties:
+            CidrBlock: !Ref VpcCIDR
+            EnableDnsHostnames: true
+            Tags:
+                -   Key: Name
+                    Value: !Join
+                        - ''
+                        -   - !Ref EnvironmentName
+                            - "-vpc-"
+                            - !Ref AWS::Region
+
+    InternetGateway:
+        Type: AWS::EC2::InternetGateway
+        Properties:
+            Tags:
+                -   Key: Name
+                    Value: !Join
+                        - ''
+                        -   - !Ref EnvironmentName
+                            - "-internet-gateway-"
+                            - !Ref AWS::Region
+
+    InternetGatewayAttachment:
+        Type: AWS::EC2::VPCGatewayAttachment
+        Properties:
+            InternetGatewayId: !Ref InternetGateway
+            VpcId: !Ref VPC
+
+    PublicSubnet:
+        Type: AWS::EC2::Subnet
+        Properties:
+            VpcId: !Ref VPC
+            CidrBlock: !Ref PublicSubnetCIDR
+            MapPublicIpOnLaunch: true
+            Tags:
+                -   Key: Name
+                    Value: !Join
+                        - ''
+                        -   - !Ref EnvironmentName
+                            - "-public-subnet-"
+                            - !Ref AWS::Region
+
+    PrivateSubnet:
+        Type: AWS::EC2::Subnet
+        Properties:
+            VpcId: !Ref VPC
+            CidrBlock: !Ref PrivateSubnetCIDR
+            MapPublicIpOnLaunch: false
+            Tags:
+                -   Key: Name
+                    Value: !Join
+                        - ''
+                        -   - !Ref EnvironmentName
+                            - "-private-subnet-"
+                            - !Ref AWS::Region
+
+    EIP:
+        Type: AWS::EC2::EIP
+        Properties:
+            Domain: vpc
+
+    NatGateway:
+        Type: AWS::EC2::NatGateway
+        Properties:
+            AllocationId: !GetAtt EIP.AllocationId
+            SubnetId: !Ref PublicSubnet
+
+    PublicRouteTable:
+        Type: AWS::EC2::RouteTable
+        Properties:
+            VpcId: !Ref VPC
+            Tags:
+                -   Key: Name
+                    Value: !Join
+                        - ''
+                        -   - !Ref EnvironmentName
+                            - "-public-route-table-"
+                            - !Ref AWS::Region
+
+    PublicOutboundRoute:
+        Type: AWS::EC2::Route
+        Properties:
+            RouteTableId: !Ref PublicRouteTable
+            DestinationCidrBlock: 0.0.0.0/0
+            GatewayId: !Ref InternetGateway
+
+
+    AssociationPublicSubnet:
+        Type: AWS::EC2::SubnetRouteTableAssociation
+        Properties:
+            RouteTableId: !Ref PublicRouteTable
+            SubnetId: !Ref PublicSubnet
+
+    PrivateRouteTable:
+        Type: AWS::EC2::RouteTable
+        Properties:
+            VpcId: !Ref VPC
+            Tags:
+                -   Key: Name
+                    Value: !Join
+                        - ''
+                        -   - !Ref EnvironmentName
+                            - "-private-route-table-"
+                            - !Ref AWS::Region
+
+    PrivateOutboundRoute:
+        Type: AWS::EC2::Route
+        Properties:
+            RouteTableId: !Ref PrivateRouteTable
+            DestinationCidrBlock: 0.0.0.0/0
+            NatGatewayId: !Ref NatGateway
+
+
+    AssociationPrivateSubnet:
+        Type: AWS::EC2::SubnetRouteTableAssociation
+        Properties:
+            RouteTableId: !Ref PrivateRouteTable
+            SubnetId: !Ref PrivateSubnet
+
+
+Outputs:
+    VPC:
+        Description: "A reference to the created VPC"
+        Value: !Ref VPC
+        Export:
+            Name: !Join
+                - ''
+                -   - !Ref EnvironmentName
+                    - "-vpc-id-"
+                    - !Ref AWS::Region
+
+    PublicRouteTable:
+        Description: "A reference to the created public route table"
+        Value: !Ref PublicRouteTable
+        Export:
+            Name: !Join
+                - ''
+                -   - !Ref EnvironmentName
+                    - "-public-route-table-"
+                    - !Ref AWS::Region
+
+    PrivateRouteTable:
+        Description: "A reference to the created private route table"
+        Value: !Ref PrivateRouteTable
+        Export:
+            Name: !Join
+                - ''
+                -   - !Ref EnvironmentName
+                    - "-private-route-table-"
+                    - !Ref AWS::Region
+
+    PublicSubnet:
+        Description: "A reference to the created public subnet"
+        Value: !Ref PublicSubnet
+        Export:
+            Name: !Join
+                - ''
+                -   - !Ref EnvironmentName
+                    - "-public-subnet-"
+                    - !Ref AWS::Region
+
+    PrivateSubnet:
+        Description: "A reference to the created private subnet"
+        Value: !Ref PrivateSubnet
+        Export:
+            Name: !Join
+                - ''
+                -   - !Ref EnvironmentName
+                    - "-private-subnet-"
+                    - !Ref AWS::Region
