@@ -1,4 +1,5 @@
 import json
+from json.decoder import JSONDecodeError
 from boto3.session import Session
 from botocore.exceptions import ClientError, WaiterError
 from mypy_boto3_cloudformation.type_defs import (
@@ -13,6 +14,7 @@ from mypy_boto3_cloudformation import CloudFormationClient
 from typing import Sequence, Literal, Tuple
 import argparse
 import sys
+import os
 
 parser = argparse.ArgumentParser(
     description='CloudFormation client with boto3',
@@ -109,7 +111,20 @@ class CloudFormationClient:
             region_name=region
         )
 
-    def create_stack(self, stack_name: str, template_file_name: str) -> CreateStackOutputTypeDef | None:
+    def create_stack(
+            self,
+            stack_name: str,
+            template_file_name: str
+    ) -> CreateStackOutputTypeDef | EmptyResponseMetadataTypeDef | None:
+        """
+        This function is old and being replaced with change_set instead
+        Args:
+            stack_name: The Cloud Formation stack name
+            template_file_name: The YAML file that contain the template body
+
+        Returns: a dictionary
+
+        """
         try:
             with open(file=fr"{template_file_name}", mode='r') as fd:
                 template_body = fd.read()
@@ -144,9 +159,23 @@ class CloudFormationClient:
             template_file_name: str,
             change_set_type: ChangeSetTypeType
     ) -> CreateChangeSetInputRequestTypeDef:
-        with open(file=fr"{template_file_name}", mode='r') as fd:
-            # Get the template body from file
-            template_body = fd.read()
+        """
+        Create input for the create_change_set function
+        Args:
+            stack_name: The Cloud Formation stack name
+            template_file_name: The YAML file that contain the template body
+            change_set_type: has to be CREATE or UPDATE
+
+        Returns: a dictionary contains parameters for the create_change_set function
+
+        """
+        try:
+            template_file_path = fr"{os.getcwd()}\{template_file_name}"
+            with open(file=template_file_path, mode='r') as fd:
+                # Get the template body from file
+                template_body: str = fd.read()
+        except Exception as error:
+            raise error
         request_input = CreateChangeSetInputRequestTypeDef(
             StackName=stack_name,
             ChangeSetName=f"{stack_name}ChangeSet",
@@ -154,18 +183,36 @@ class CloudFormationClient:
             ChangeSetType=change_set_type,
         )
         if args['capabilities']:
-            request_input['Capabilities'] = args['capabilities']
+            capabilities: Sequence[CapabilityType] = args['capabilities']
+            request_input['Capabilities'] = capabilities
         if args['parameters_file']:
-            with open(file=args['parameters_file'], mode='r') as data_input:
-                params: Sequence[ParameterTypeDef] = json.load(data_input)
-            request_input['Parameters'] = params
+            try:
+                parameters_file_path = fr"{os.getcwd()}\{args['parameters_file']}"
+                with open(file=parameters_file_path, mode='r') as data_input:
+                    params: Sequence[ParameterTypeDef] = json.load(data_input)
+            except JSONDecodeError as json_error:
+                raise json_error
+            else:
+                request_input['Parameters'] = params
 
         return request_input
 
     def change_set(
             self,
             create_change_set_input: CreateChangeSetInputRequestTypeDef
-    ):
+    ) -> EmptyResponseMetadataTypeDef:
+        """
+        For handle change set within CREATE or UPDATE behavior.
+        This function will replace create_stack and update_stack also
+
+        Args:
+            create_change_set_input:
+                The input parameters for create_change_set function from boto3.
+                Using self.get_create_change_set_input() or just pass a dictionary to this parameter
+
+        Returns: a dictionary contain a metadata response
+
+        """
         try:
             self._awsClient.describe_stacks(
                 StackName=create_change_set_input['StackName']
@@ -220,6 +267,15 @@ class CloudFormationClient:
                     print(f"Execution status is {change_set_response['ExecutionStatus']}")
 
     def update_stack(self, stack_name: str, template_file_name: str) -> UpdateStackOutputTypeDef | None:
+        """
+        This function is old and being replaced with change_set instead
+        Args:
+            stack_name: The Cloud Formation stack name
+            template_file_name: The YAML file that contain the template body
+
+        Returns:
+
+        """
         try:
             with open(file=fr"{template_file_name}", mode='r') as fd:
                 template_body = fd.read()
@@ -240,6 +296,14 @@ class CloudFormationClient:
             return response
 
     def delete_stack(self, stack_name: str) -> EmptyResponseMetadataTypeDef:
+        """
+        The function to represent for the delete_stack API of Cloud Formation SDK
+        Args:
+            stack_name:
+
+        Returns:
+
+        """
         try:
             response = self._awsClient.delete_stack(
                 StackName=stack_name,
