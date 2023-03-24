@@ -1,5 +1,5 @@
 <component name="ProjectRunConfigurationManager">
-  <configuration default="false" name="cloudformation" type="PythonConfigurationType" factoryName="Python" nameIsGenerated="true">
+  <configuration default="false" name="networking-infrastructure" type="PythonConfigurationType" factoryName="Python">
     <module name="deploy-infrastructure-as-code" />
     <option name="INTERPRETER_OPTIONS" value="" />
     <option name="PARENT_ENVS" value="true" />
@@ -13,7 +13,7 @@
     <option name="ADD_CONTENT_ROOTS" value="true" />
     <option name="ADD_SOURCE_ROOTS" value="true" />
     <option name="SCRIPT_NAME" value="$PROJECT_DIR$/lesson-2-networking-infrastructure/cloudformation.py" />
-    <option name="PARAMETERS" value="create --stack-name Challenge2 --template-body challenge-2.yml --parameters-file challenge-2-parameters.json" />
+    <option name="PARAMETERS" value="create --stack-name Challenge2 --template-body .\networking-infrastructure\challenge-2.yml --parameters-file .\networking-infrastructure\challenge-2-parameters.json" />
     <option name="SHOW_COMMAND_LINE" value="false" />
     <option name="EMULATE_TERMINAL" value="true" />
     <option name="MODULE_MODE" value="false" />
