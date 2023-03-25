@@ -1,0 +1,57 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: >
+    ThaiDG
+Parameters:
+    EnvironmentName:
+        Description: "The environment name that match with the environment name in the challenge 2"
+        Type: String
+        Default: ""
+
+Resources:
+    SecGroupName:
+        Type: AWS::EC2::SecurityGroup
+        Properties:
+            GroupName: "ThaiDG-sg-for-challenge-1"
+            GroupDescription: "The security group for challenge 1 that allow ingress to TCP 80 only and unrestricted to egress"
+            VpcId:
+                Fn::ImportValue: !Join
+                    - ""
+                    -   - !Ref EnvironmentName
+                        - "-vpc-id-"
+                        - !Ref AWS::Region
+            Tags:
+                -   Key: "Name"
+                    Value: !Join
+                        - ""
+                        -   - !Ref EnvironmentName
+                            - "-security-group-"
+                            - !Ref AWS::Region
+    OutboundRule:
+        Type: AWS::EC2::SecurityGroupEgress
+        Properties:
+            GroupId: !Ref SecGroupName
+            IpProtocol: "-1"
+            FromPort: -1
+            ToPort: -1
+            CidrIp: "0.0.0.0/0"
+            Description: "Allow all egress traffic"
+    InboundRule:
+        Type: AWS::EC2::SecurityGroupIngress
+        Properties:
+            GroupId: !Ref SecGroupName
+            IpProtocol: "tcp"
+            FromPort: 80
+            ToPort: 80
+            CidrIp: "0.0.0.0/0"
+            Description: "Allow all ingress traffic of port 80"
+
+Outputs:
+    SecGroupId:
+        Description: "Output the security group id"
+        Value: !Ref SecGroupName
+        Export:
+            Name: !Join
+                - ""
+                -   - !Ref EnvironmentName
+                    - "-security-group-"
+                    - !Ref AWS::Region
