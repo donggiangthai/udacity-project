@@ -34,8 +34,9 @@ parser.add_argument(
 )
 parser.add_argument(
 	'-c', '--capabilities',
+	nargs="+",
 	required=False,
-	type=Sequence[CapabilityType],
+	type=str,
 	choices=["CAPABILITY_IAM", "CAPABILITY_NAMED_IAM", "CAPABILITY_AUTO_EXPAND"],
 	help='Capabilities required if related to IAM, choice in 3 options'
 )
