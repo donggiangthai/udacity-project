@@ -20,6 +20,9 @@
                   <Item>
                     <option name="path" value="lesson-2-networking-infrastructure/servers-and-security-groups/challenge-3.yml" />
                   </Item>
+                  <Item>
+                    <option name="path" value="lesson-3-servers-and-security-groups/challenge-3.yml" />
+                  </Item>
                 </list>
               </option>
             </SchemaInfo>

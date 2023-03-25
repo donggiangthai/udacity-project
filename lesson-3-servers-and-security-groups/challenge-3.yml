@@ -6,13 +6,17 @@ Parameters:
         Description: "The environment name that match with the environment name in the challenge 2"
         Type: String
         Default: ""
+    ManagedPolicies:
+        Description: "The AWS Managed Policy for the EC2 Instance Role"
+        Type: CommaDelimitedList
+        Default: "arn:aws:iam::aws:policy/AdministratorAccess"
 
 Resources:
     SecGroupName:
         Type: AWS::EC2::SecurityGroup
         Properties:
             GroupName: "ThaiDG-sg-for-challenge-1"
-            GroupDescription: "The security group for challenge 1 that allow ingress to TCP 80 only and unrestricted to egress"
+            GroupDescription: "The security group for challenge 3 that allow ingress to TCP 80 for future use"
             VpcId:
                 Fn::ImportValue: !Join
                     - ""
@@ -26,15 +30,15 @@ Resources:
                         -   - !Ref EnvironmentName
                             - "-security-group-"
                             - !Ref AWS::Region
-    OutboundRule:
-        Type: AWS::EC2::SecurityGroupEgress
-        Properties:
-            GroupId: !Ref SecGroupName
-            IpProtocol: "-1"
-            FromPort: -1
-            ToPort: -1
-            CidrIp: "0.0.0.0/0"
-            Description: "Allow all egress traffic"
+    #    OutboundRule:
+    #        Type: AWS::EC2::SecurityGroupEgress
+    #        Properties:
+    #            GroupId: !Ref SecGroupName
+    #            IpProtocol: "-1"
+    #            FromPort: -1
+    #            ToPort: -1
+    #            CidrIp: "0.0.0.0/0"
+    #            Description: "Allow all egress traffic"
     InboundRule:
         Type: AWS::EC2::SecurityGroupIngress
         Properties:
@@ -44,6 +48,35 @@ Resources:
             ToPort: 80
             CidrIp: "0.0.0.0/0"
             Description: "Allow all ingress traffic of port 80"
+
+    IAMRole:
+        Type: AWS::IAM::Role
+        Properties:
+            AssumeRolePolicyDocument:
+                Version: "2012-10-17"
+                Statement:
+                    -   Effect: "Allow"
+                        Principal:
+                            Service:
+                                - "ec2.amazonaws.com"
+                        Action:
+                            - "sts:AssumeRole"
+            Description: "The IAM role for challenge 3"
+            ManagedPolicyArns:
+                Ref: "ManagedPolicies"
+            Tags:
+                -   Key: "Name"
+                    Value: !Join
+                        - ""
+                        -   - !Ref EnvironmentName
+                            - "-iam-role-"
+                            - !Ref AWS::Region
+    InstanceProfile:
+        Type: "AWS::IAM::InstanceProfile"
+        Properties:
+            Path: "/"
+            Roles:
+                -   Ref: "IAMRole"
 
 Outputs:
     SecGroupId:
