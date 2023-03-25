@@ -2,5 +2,21 @@
 	{
 		"ParameterKey": "EnvironmentName",
 		"ParameterValue": "ThaiDG-Udacity-challenge"
+	},
+	{
+		"ParameterKey": "ManagedPolicies",
+		"ParameterValue": "arn:aws:iam::aws:policy/AdministratorAccess"
+	},
+	{
+		"ParameterKey": "InstanceType",
+		"ParameterValue": "t3.micro"
+	},
+	{
+		"ParameterKey": "KeyPair",
+		"ParameterValue": "thaidg-servers-key-pair"
+	},
+	{
+		"ParameterKey": "ImageId",
+		"ParameterValue": "al2023-ami-us-east-1"
 	}
 ]

@@ -5,17 +5,26 @@ Parameters:
     EnvironmentName:
         Description: "The environment name that match with the environment name in the challenge 2"
         Type: String
-        Default: ""
     ManagedPolicies:
         Description: "The AWS Managed Policy for the EC2 Instance Role"
         Type: CommaDelimitedList
-        Default: "arn:aws:iam::aws:policy/AdministratorAccess"
+    InstanceType:
+        Type: String
+        Description: "EC2 instance type"
+        AllowedValues:
+            - t2.micro
+            - t3.micro
+    KeyPair:
+        Type: AWS::SSM::Parameter::Value<AWS::EC2::KeyPair::KeyName>
+        Description: "AWS key pair in us-east-1, stored in SSM Parameter Store"
+    ImageId:
+        Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
+        Description: "AWS AMI in us-east-1, stored in SSM Parameter Store"
 
 Resources:
-    SecGroupName:
+    WebAccessSecurityGroup:
         Type: AWS::EC2::SecurityGroup
         Properties:
-            GroupName: "ThaiDG-sg-for-challenge-1"
             GroupDescription: "The security group for challenge 3 that allow ingress to TCP 80 for future use"
             VpcId:
                 Fn::ImportValue: !Join
@@ -42,14 +51,15 @@ Resources:
     InboundRule:
         Type: AWS::EC2::SecurityGroupIngress
         Properties:
-            GroupId: !Ref SecGroupName
+            GroupId:
+                Ref: "WebAccessSecurityGroup"
             IpProtocol: "tcp"
             FromPort: 80
             ToPort: 80
             CidrIp: "0.0.0.0/0"
             Description: "Allow all ingress traffic of port 80"
 
-    IAMRole:
+    AdministratorRole:
         Type: AWS::IAM::Role
         Properties:
             AssumeRolePolicyDocument:
@@ -71,20 +81,58 @@ Resources:
                         -   - !Ref EnvironmentName
                             - "-iam-role-"
                             - !Ref AWS::Region
-    InstanceProfile:
+    ServerInstanceProfile:
         Type: "AWS::IAM::InstanceProfile"
         Properties:
             Path: "/"
             Roles:
-                -   Ref: "IAMRole"
+                -   Ref: "AdministratorRole"
+    WebServerInstance:
+        Type: AWS::EC2::Instance
+        Properties:
+            KeyName: !Ref KeyPair
+            ImageId: !Ref ImageId
+            InstanceType: !Ref InstanceType
+            IamInstanceProfile:
+                Ref: "ServerInstanceProfile"
+            NetworkInterfaces:
+                -   AssociatePublicIpAddress: false
+                    DeleteOnTermination: true
+                    DeviceIndex: "0"
+                    GroupSet:
+                        - Ref: "WebAccessSecurityGroup"
+                    SubnetId:
+                        Fn::ImportValue: !Join
+                            - ""
+                            -   - !Ref EnvironmentName
+                                - "-private-subnet-"
+                                - !Ref AWS::Region
+            UserData:
+                Fn::Base64: |
+                    #!/bin/bash
+                    yum update -y
+                    yum install -y httpd.x86_64
+                    systemctl start httpd.service
+                    systemctl enable httpd.service
 
 Outputs:
-    SecGroupId:
-        Description: "Output the security group id"
-        Value: !Ref SecGroupName
+    WebAccessSecurityGroup:
+        Description: "Output the security group id for the server"
+        Value:
+            Ref: "WebAccessSecurityGroup"
         Export:
             Name: !Join
                 - ""
                 -   - !Ref EnvironmentName
-                    - "-security-group-"
+                    - "-web-server-sg-"
+                    - !Ref AWS::Region
+    WebServerInstance:
+        Description: "Output of the web server instance id"
+        Value:
+            Ref: "WebServerInstance"
+        Export:
+            Name: !Join
+                - ""
+                -   - !Ref EnvironmentName
+                    - "-web-server-instance-id-"
                     - !Ref AWS::Region
