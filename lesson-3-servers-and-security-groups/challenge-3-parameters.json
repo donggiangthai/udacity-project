@@ -5,7 +5,7 @@
 	},
 	{
 		"ParameterKey": "ManagedPolicies",
-		"ParameterValue": "arn:aws:iam::aws:policy/AdministratorAccess"
+		"ParameterValue": "arn:aws:iam::aws:policy/AdministratorAccess,arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
 	},
 	{
 		"ParameterKey": "InstanceType",

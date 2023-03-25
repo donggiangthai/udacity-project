@@ -114,6 +114,13 @@ Resources:
                     yum install -y httpd.x86_64
                     systemctl start httpd.service
                     systemctl enable httpd.service
+            Tags:
+                - Key: "Name"
+                  Value: !Join
+                      - ""
+                      -   - !Ref EnvironmentName
+                          - "-web-server-"
+                          - !Ref AWS::Region
 
 Outputs:
     WebAccessSecurityGroup:
