@@ -212,8 +212,6 @@ class CloudFormationClient:
 
 		Returns: a dictionary contain a metadata response
 
-            change_set_type: Literal["UPDATE"] = "UPDATE"
-            create_change_set_input['ChangeSetType'] = change_set_type
 		"""
 		try:
 			des_stack = self._awsClient.describe_stacks(
@@ -225,6 +223,34 @@ class CloudFormationClient:
 			else:
 				raise client_error
 		else:
+			stack_status = des_stack['Stacks'][0]['StackStatus']
+			if 'ROLLBACK_' in stack_status:
+				if 'ROLLBACK_COMPLETE' not in stack_status:
+					roll_back_waiter = self._awsClient.get_waiter('stack_rollback_complete')
+					try:
+						roll_back_waiter.wait(StackName=create_change_set_input['StackName'])
+					except WaiterError as wt_err:
+						print(wt_err.last_response['StatusReason'])
+						raise wt_err
+				try:
+					self.delete_stack(stack_name=create_change_set_input['StackName'])
+				except ClientError as error:
+					raise error
+				else:
+					print("Cleaned stack and ready for execute.")
+			elif 'CREATE_COMPLETE' or 'UPDATE_COMPLETE' in stack_status:
+				change_set_type: Literal["UPDATE"] = "UPDATE"
+				create_change_set_input['ChangeSetType'] = change_set_type
+			else:
+				raise Exception(
+					"""
+					Check the stack status and execute the script again. 
+					Make sure the state only in one of the follow: 
+						- 'CREATE_COMPLETE'
+						- 'UPDATE_COMPLETE'
+						- 'ROLLBACK_COMPLETE'
+					"""
+				)
 		try:
 			# Validate template
 			self._awsClient.validate_template(TemplateBody=create_change_set_input['TemplateBody'])
