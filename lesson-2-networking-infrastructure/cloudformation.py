@@ -258,11 +258,22 @@ class CloudFormationClient:
                         )
                         return execute_response
                     else:
-                        delete_response = self._awsClient.delete_change_set(
-                            ChangeSetName=change_set_arn,
-                            StackName=create_change_set_input['StackName']
-                        )
-                        return delete_response
+                        try:
+                            delete_change_set_response = self._awsClient.delete_change_set(
+                                ChangeSetName=change_set_arn,
+                                StackName=create_change_set_input['StackName']
+                            )
+                        except ClientError as error:
+                            raise error
+                        if create_change_set_input['ChangeSetType'] == 'CREATE':
+                            try:
+                                delete_stack_response = self.delete_stack(stack_name=create_change_set_input['StackName'])
+                            except ClientError as error:
+                                raise error
+                            else:
+                                return delete_stack_response
+                        else:
+                            return delete_change_set_response
                 else:
                     print(f"Execution status is {change_set_response['ExecutionStatus']}")
 
