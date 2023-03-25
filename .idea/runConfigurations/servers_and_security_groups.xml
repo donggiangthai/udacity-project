@@ -12,8 +12,8 @@
     <option name="IS_MODULE_SDK" value="false" />
     <option name="ADD_CONTENT_ROOTS" value="true" />
     <option name="ADD_SOURCE_ROOTS" value="true" />
-    <option name="SCRIPT_NAME" value="$PROJECT_DIR$/lesson-2-networking-infrastructure/cloudformation.py" />
-    <option name="PARAMETERS" value="create --stack-name Servers --template-body .\servers-and-security-groups\challenge-3.yml --parameters-file .\servers-and-security-groups\challenge-2-parameters.json" />
+    <option name="SCRIPT_NAME" value="C:\Users\ASUS\Desktop\code\Udacity\deploy-infrastructure-as-code\cloudformation.py" />
+    <option name="PARAMETERS" value="create --stack-name Servers --template-body .\servers-and-security-groups\challenge-3.yml --parameters-file .\servers-and-security-groups\challenge-3-parameters.json" />
     <option name="SHOW_COMMAND_LINE" value="false" />
     <option name="EMULATE_TERMINAL" value="true" />
     <option name="MODULE_MODE" value="false" />

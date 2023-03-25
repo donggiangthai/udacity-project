@@ -1,5 +1,5 @@
 <component name="ProjectRunConfigurationManager">
-  <configuration default="false" name="networking-infrastructure" type="PythonConfigurationType" factoryName="Python">
+  <configuration default="false" name="challenge-3" type="PythonConfigurationType" factoryName="Python">
     <module name="deploy-infrastructure-as-code" />
     <option name="INTERPRETER_OPTIONS" value="" />
     <option name="PARENT_ENVS" value="true" />
@@ -13,7 +13,7 @@
     <option name="ADD_CONTENT_ROOTS" value="true" />
     <option name="ADD_SOURCE_ROOTS" value="true" />
     <option name="SCRIPT_NAME" value="C:\Users\ASUS\Desktop\code\Udacity\deploy-infrastructure-as-code\cloudformation.py" />
-    <option name="PARAMETERS" value="create --stack-name Challenge2 --template-body .\networking-infrastructure\challenge-2.yml --parameters-file .\networking-infrastructure\challenge-2-parameters.json" />
+    <option name="PARAMETERS" value="create --stack-name Challenge3 --template-body .\servers-and-security-groups\challenge-3.yml --parameters-file .\servers-and-security-groups\challenge-3-parameters.json" />
     <option name="SHOW_COMMAND_LINE" value="false" />
     <option name="EMULATE_TERMINAL" value="true" />
     <option name="MODULE_MODE" value="false" />
