@@ -349,6 +349,14 @@ class CloudFormationClient:
 		except ClientError as error:
 			raise error
 		else:
+			delete_waiter = self._awsClient.get_waiter('stack_delete_complete')
+			try:
+				delete_waiter.wait(StackName=stack_name)
+			except WaiterError as wt_err:
+				print(wt_err.last_response['StatusReason'])
+				raise wt_err
+			else:
+				print("Stack deleted.")
 				return response
 
 	def handle(self, option: str) -> None:
