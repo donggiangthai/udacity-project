@@ -23,6 +23,15 @@
                   <Item>
                     <option name="path" value="lesson-3-servers-and-security-groups/challenge-3.yml" />
                   </Item>
+                  <Item>
+                    <option name="path" value="deploy-a-high-availability-web-app-using-cloudformation/servers.yml" />
+                  </Item>
+                  <Item>
+                    <option name="path" value="deploy-a-high-availability-web-app-using-cloudformation/networking.yml" />
+                  </Item>
+                  <Item>
+                    <option name="path" value="deploy-a-high-availability-web-app-using-cloudformation/test.yml" />
+                  </Item>
                 </list>
               </option>
             </SchemaInfo>

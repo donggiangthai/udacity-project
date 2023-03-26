@@ -1,0 +1,26 @@
+[
+	{
+		"ParameterKey": "EnvironmentName",
+		"ParameterValue": "ThaiDG-Udacity-second-project"
+	},
+	{
+		"ParameterKey": "VpcCIDR",
+		"ParameterValue": "10.0.0.0/16"
+	},
+	{
+		"ParameterKey": "PublicSubnetCIDR1a",
+		"ParameterValue": "10.0.1.0/24"
+	},
+	{
+		"ParameterKey": "PublicSubnetCIDR1b",
+		"ParameterValue": "10.0.2.0/24"
+	},
+	{
+		"ParameterKey": "PrivateSubnetCIDR1a",
+		"ParameterValue": "10.0.3.0/24"
+	},
+	{
+		"ParameterKey": "PrivateSubnetCIDR1b",
+		"ParameterValue": "10.0.4.0/24"
+	}
+]
