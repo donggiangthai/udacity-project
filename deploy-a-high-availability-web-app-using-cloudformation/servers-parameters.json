@@ -1,0 +1,22 @@
+[
+	{
+		"ParameterKey": "EnvironmentName",
+		"ParameterValue": "ThaiDG-Udacity-second-project"
+	},
+	{
+		"ParameterKey": "ManagedPolicies",
+		"ParameterValue": "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore,arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess"
+	},
+	{
+		"ParameterKey": "InstanceType",
+		"ParameterValue": "t3.medium"
+	},
+	{
+		"ParameterKey": "KeyPair",
+		"ParameterValue": "thaidg-servers-key-pair"
+	},
+	{
+		"ParameterKey": "ImageId",
+		"ParameterValue": "ubuntu-18-lts"
+	}
+]

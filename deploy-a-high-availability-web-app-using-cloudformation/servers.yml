@@ -1,0 +1,321 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: >
+    ThaiDG
+Parameters:
+    EnvironmentName:
+        Description: "An environment name that will be prefixed to the resources name and also the exports name"
+        Type: String
+    ManagedPolicies:
+        Description: "The AWS Managed Policy for the EC2 Instance Role"
+        Type: CommaDelimitedList
+    InstanceType:
+        Type: String
+        Description: "EC2 instance type. For the second project required 2vCPU and 4GiB of Memory, so t3.medium is the best fits for this spec."
+        AllowedValues:
+            - t2.micro
+            - t3.micro
+            - t3.medium
+    KeyPair:
+        Type: AWS::SSM::Parameter::Value<AWS::EC2::KeyPair::KeyName>
+        Description: "AWS key pair in us-east-1, stored in SSM Parameter Store"
+    ImageId:
+        Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
+        Description: "AWS AMI in us-east-1, stored in SSM Parameter Store"
+
+Resources:
+    WebServerSecurityGroup:
+        Type: AWS::EC2::SecurityGroup
+        Properties:
+            GroupDescription: "The security group of the second project for the server instance."
+            VpcId:
+                Fn::ImportValue:
+                    Fn::Join:
+                        - ""
+                        -   - !Ref EnvironmentName
+                            - "-vpc-id-"
+                            -   Ref: "AWS::Region"
+            Tags:
+                -   Key: "Name"
+                    Value:
+                        Fn::Join:
+                            - ""
+                            -   - !Ref EnvironmentName
+                                - "-web-server-security-group-"
+                                -   Ref: "AWS::Region"
+
+    LoadBalancerSecurityGroup:
+        Type: AWS::EC2::SecurityGroup
+        Properties:
+            GroupDescription: "The security group of the second project for the load balancer."
+            VpcId:
+                Fn::ImportValue:
+                    Fn::Join:
+                        - ""
+                        -   - !Ref EnvironmentName
+                            - "-vpc-id-"
+                            -   Ref: "AWS::Region"
+            Tags:
+                -   Key: "Name"
+                    Value:
+                        Fn::Join:
+                            - ""
+                            -   - !Ref EnvironmentName
+                                - "-load-balancer-security-group-"
+                                -   Ref: "AWS::Region"
+
+    WebServerOutboundRuleALL:
+        Type: AWS::EC2::SecurityGroupEgress
+        Properties:
+            GroupId:
+                Ref: "WebServerSecurityGroup"
+            IpProtocol: "-1"
+            FromPort: -1
+            ToPort: -1
+            CidrIp: "0.0.0.0/0"
+            Description: "Allow all egress traffic by default"
+
+    WebServerInboundRuleHTTP:
+        Type: AWS::EC2::SecurityGroupIngress
+        Properties:
+            GroupId:
+                Ref: "WebServerSecurityGroup"
+            IpProtocol: "tcp"
+            FromPort: 80
+            ToPort: 80
+            CidrIp: "0.0.0.0/0"
+            Description: "Allow ingress to the default HTTP port: 80 for load balancer health check"
+
+    LoadBalancerOutboundRuleHTTP:
+        Type: AWS::EC2::SecurityGroupEgress
+        Properties:
+            GroupId:
+                Ref: "LoadBalancerSecurityGroup"
+            IpProtocol: "tcp"
+            FromPort: 80
+            ToPort: 80
+            CidrIp: "0.0.0.0/0"
+            Description: "Allow all egress traffic by default"
+
+    LoadBalancerInboundRuleHTTP:
+        Type: AWS::EC2::SecurityGroupIngress
+        Properties:
+            GroupId:
+                Ref: "LoadBalancerSecurityGroup"
+            IpProtocol: "tcp"
+            FromPort: 80
+            ToPort: 80
+            CidrIp: "0.0.0.0/0"
+            Description: "Allow ingress to the default HTTP port: 80 for load balancer health check"
+
+    WebServerRole:
+        Type: AWS::IAM::Role
+        Properties:
+            AssumeRolePolicyDocument:
+                Version: "2012-10-17"
+                Statement:
+                    -   Effect: "Allow"
+                        Principal:
+                            Service:
+                                - "ec2.amazonaws.com"
+                        Action:
+                            - "sts:AssumeRole"
+            Description: "The IAM role of second project that allow S3 read only and SSM Managed Instance Core"
+            ManagedPolicyArns: !Ref ManagedPolicies
+            Tags:
+                -   Key: "Name"
+                    Value:
+                        Fn::Join:
+                            - ""
+                            -   - !Ref EnvironmentName
+                                - "-web-server-iam-role-"
+                                -   Ref: "AWS::Region"
+
+    WebServerInstanceProfile:
+        Type: "AWS::IAM::InstanceProfile"
+        Properties:
+            Path: "/"
+            Roles:
+                -   Ref: "WebServerRole"
+
+    WebServerLaunchTemplate:
+        Type: AWS::EC2::LaunchTemplate
+        Properties:
+            LaunchTemplateData:
+                ImageId: !Ref ImageId
+                KeyName: !Ref KeyPair
+                InstanceType: !Ref InstanceType
+                BlockDeviceMappings:
+                    -   DeviceName: "/dev/sdk"
+                        Ebs:
+                            VolumeSize: "10"
+                SecurityGroupIds:
+                    -   Ref: "WebServerSecurityGroup"
+                UserData:
+                    Fn::Base64: |
+                        #!/bin/bash
+                        apt-get update -y
+                        apt-get install apache2 -y
+                        systemctl start apache2.service
+                        cd /var/www/html
+                        echo "Udacity Demo Web Server Up and Running!" > index.html
+            LaunchTemplateName:
+                Fn::Join:
+                    - ""
+                    -   - !Ref EnvironmentName
+                        - "-launch-template-"
+                        -   Ref: "AWS::Region"
+
+    WebServerGroup:
+        Type: AWS::AutoScaling::AutoScalingGroup
+        Properties:
+            VPCZoneIdentifier:
+                -   Fn::ImportValue:
+                        Fn::Join:
+                            - ""
+                            -   - !Ref EnvironmentName
+                                - "-private-subnets-"
+                                -   Ref: "AWS::Region"
+            CapacityRebalance: true
+            HealthCheckType: "ELB"
+            LaunchTemplate:
+                LaunchTemplateId:
+                    Ref: "WebServerLaunchTemplate"
+                Version:
+                    Fn::GetAtt: "WebServerLaunchTemplate.LatestVersionNumber"
+            MinSize: '4'
+            MaxSize: '6'
+            TargetGroupARNs:
+                -   Ref: "WebServerTargetGroup"
+            Tags:
+                -   Key: "Name"
+                    PropagateAtLaunch: false
+                    Value:
+                        Fn::Join:
+                            - ""
+                            -   - !Ref EnvironmentName
+                                - "-auto-scaling-"
+                                -   Ref: "AWS::Region"
+
+    WebServerLoadBalancer:
+        Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+        Properties:
+            Type: "application"
+            IpAddressType: "ipv4"
+            Subnets:
+                -   Fn::ImportValue:
+                        Fn::Join:
+                            - ''
+                            -   - !Ref EnvironmentName
+                                - "-public-subnet-"
+                                -   Ref: "AWS::Region"
+                                - "-a"
+                -   Fn::ImportValue:
+                        Fn::Join:
+                            - ''
+                            -   - !Ref EnvironmentName
+                                - "-public-subnet-"
+                                -   Ref: "AWS::Region"
+                                - "-b"
+            SecurityGroups:
+                -   Ref: "LoadBalancerSecurityGroup"
+            Tags:
+                -   Key: "Name"
+                    Value:
+                        Fn::Join:
+                            - ""
+                            -   - !Ref EnvironmentName
+                                - "-load-balancer-"
+                                -   Ref: "AWS::Region"
+
+    Listener:
+        Type: AWS::ElasticLoadBalancingV2::Listener
+        Properties:
+            DefaultActions:
+                -   Type: forward
+                    TargetGroupArn:
+                        Ref: "WebServerTargetGroup"
+            LoadBalancerArn:
+                Ref: "WebServerLoadBalancer"
+            Port: "80"
+            Protocol: HTTP
+
+    LoadBalancerListenerRule:
+        Type: AWS::ElasticLoadBalancingV2::ListenerRule
+        Properties:
+            Actions:
+                -   Type: forward
+                    TargetGroupArn:
+                        Ref: "WebServerTargetGroup"
+            Conditions:
+                -   Field: path-pattern
+                    Values: [ / ]
+            ListenerArn:
+                Ref: "Listener"
+            Priority: 1
+
+    WebServerTargetGroup:
+        Type: AWS::ElasticLoadBalancingV2::TargetGroup
+        Properties:
+            HealthCheckIntervalSeconds: 10
+            HealthCheckPath: /
+            HealthCheckProtocol: HTTP
+            HealthCheckTimeoutSeconds: 8
+            HealthyThresholdCount: 2
+            Port: 80
+            Protocol: HTTP
+            UnhealthyThresholdCount: 5
+            VpcId:
+                Fn::ImportValue:
+                    Fn::Join:
+                        - ""
+                        -   - !Ref EnvironmentName
+                            - "-vpc-id-"
+                            -   Ref: "AWS::Region"
+            TargetType: "instance"
+            Tags:
+                -   Key: "Name"
+                    Value:
+                        Fn::Join:
+                            - ""
+                            -   - !Ref EnvironmentName
+                                - "-target-group-"
+                                -   Ref: "AWS::Region"
+
+Outputs:
+    WebAccessSecurityGroup:
+        Description: "Output the security group id for the server"
+        Value:
+            Ref: "WebServerSecurityGroup"
+        Export:
+            Name:
+                Fn::Join:
+                    - ""
+                    -   - !Ref EnvironmentName
+                        - "-web-server-sg-"
+                        -   Ref: "AWS::Region"
+
+    WebServerLoadBalancerURL:
+        Description: "Load balancer URL within the http:// in front"
+        Value:
+            Fn::Sub:
+                - "http://${load_balancer_dns_name}"
+                -   load_balancer_dns_name:
+                        Fn::GetAtt: "WebServerLoadBalancer.DNSName"
+        Export:
+            Name:
+                Fn::Join:
+                    - ""
+                    -   - !Ref EnvironmentName
+                        - "-load-balancer-dns-name"
+                        - Ref: "AWS::Region"
+
+    WebServerInstanceProfile:
+        Description: "The Instance profile that allow S3 read only and SSM Managed Instance Core"
+        Value:
+            Ref: "WebServerInstanceProfile"
+        Export:
+            Name:
+                Fn::Join:
+                    - ""
+                    -   - !Ref EnvironmentName
+                        - "-WebServerInstanceProfile"
