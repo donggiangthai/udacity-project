@@ -376,11 +376,12 @@ Outputs:
         Description: "A reference to the created VPC"
         Value: !Ref VPC
         Export:
-            Name: !Join
-                - ''
-                -   - !Ref EnvironmentName
-                    - "-vpc-id-"
-                    - !Ref AWS::Region
+            Name:
+                Fn::Join:
+                    - ''
+                    -   - !Ref EnvironmentName
+                        - "-vpc-id-"
+                        - Ref: "AWS::Region"
 
     PublicRouteTable1a:
         Description: "A reference to the created public route table in the Availability Zone a"

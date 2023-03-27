@@ -162,7 +162,7 @@ Resources:
                 Fn::Join:
                     - ""
                     -   - !Ref EnvironmentName
-                        - "-launch-template-"
+                        - "-web-server-launch-template-"
                         -   Ref: "AWS::Region"
 
     WebServerGroup:
