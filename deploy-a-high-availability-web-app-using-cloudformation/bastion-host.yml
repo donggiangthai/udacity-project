@@ -62,7 +62,7 @@ Resources:
             IpProtocol: "tcp"
             FromPort: 22
             ToPort: 22
-            CidrIp: "42.118.70.121/32"
+            CidrIp: "0.0.0.0/0"
             Description: "Allow SSH to my IP"
 
     BastionHostRole:
