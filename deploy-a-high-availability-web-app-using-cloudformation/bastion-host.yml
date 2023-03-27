@@ -1,0 +1,177 @@
+Description: >
+    ThaiDG
+    For creating the Bastion Host servers to debug the Web servers
+
+Parameters:
+    EnvironmentName:
+        Type: String
+        Description: "The environment name as a prefix"
+    AdministratorManagedPolicy:
+        Description: "The AWS Managed Policy for the EC2 Instance Role"
+        Type: String
+    InstanceType:
+        Type: String
+        Description: "EC2 instance type. For the bastion host the t2.micro or t3.micro is enough"
+        AllowedValues:
+            - t2.micro
+            - t3.micro
+    KeyPair:
+        Type: AWS::SSM::Parameter::Value<AWS::EC2::KeyPair::KeyName>
+        Description: "AWS key pair for bastion host in us-east-1, stored in SSM Parameter Store"
+    ImageId:
+        Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
+        Description: "AWS AMI in us-east-1, stored in SSM Parameter Store. I will use the Amazon Linux 2023 distribution."
+
+Resources:
+    BastionHostSecurityGroup:
+        Type: AWS::EC2::SecurityGroup
+        Properties:
+            GroupDescription: "The security group of the bastion host for the second project. Its allow ingress to the SSH port: 22 for restricted within only my IP address"
+            VpcId:
+                Fn::ImportValue:
+                    Fn::Join:
+                        - ''
+                        -   - !Ref EnvironmentName
+                            - "-vpc-id-"
+                            -   Ref: "AWS::Region"
+            Tags:
+                -   Key: "Name"
+                    Value:
+                        Fn::Join:
+                            - ""
+                            -   - !Ref EnvironmentName
+                                - "-bastion-host-security-group-"
+                                -   Ref: "AWS::Region"
+
+    BastionHostOutboundRule:
+        Type: AWS::EC2::SecurityGroupEgress
+        Properties:
+            GroupId:
+                Ref: "BastionHostSecurityGroup"
+            IpProtocol: "-1"
+            FromPort: -1
+            ToPort: -1
+            CidrIp: "0.0.0.0/0"
+            Description: "Allow all egress traffic by default"
+
+    BastionHostInboundRuleSSH:
+        Type: AWS::EC2::SecurityGroupIngress
+        Properties:
+            GroupId:
+                Ref: "BastionHostSecurityGroup"
+            IpProtocol: "tcp"
+            FromPort: 22
+            ToPort: 22
+            CidrIp: "42.118.70.121/32"
+            Description: "Allow SSH to my IP"
+
+    BastionHostRole:
+        Type: AWS::IAM::Role
+        Properties:
+            AssumeRolePolicyDocument:
+                Version: "2012-10-17"
+                Statement:
+                    -   Effect: "Allow"
+                        Principal:
+                            Service:
+                                - "ec2.amazonaws.com"
+                        Action:
+                            - "sts:AssumeRole"
+            Description: "The IAM role of second project that allow Administrator Access role"
+            ManagedPolicyArns:
+                - !Ref AdministratorManagedPolicy
+            Tags:
+                -   Key: "Name"
+                    Value:
+                        Fn::Join:
+                            - ""
+                            -   - !Ref EnvironmentName
+                                - "-bastion-host-iam-role-"
+                                -   Ref: "AWS::Region"
+
+    BastionHostInstanceProfile:
+        Type: "AWS::IAM::InstanceProfile"
+        Properties:
+            Path: "/"
+            Roles:
+                -   Ref: "BastionHostRole"
+
+    WebServerLaunchTemplate:
+        Type: AWS::EC2::LaunchTemplate
+        Properties:
+            LaunchTemplateData:
+                ImageId: !Ref ImageId
+                KeyName: !Ref KeyPair
+                InstanceType: !Ref InstanceType
+                NetworkInterfaces:
+                    -   AssociatePublicIpAddress: true
+                        DeleteOnTermination: true
+                        DeviceIndex: 0
+                        Groups:
+                            -   Ref: "BastionHostSecurityGroup"
+            LaunchTemplateName:
+                Fn::Join:
+                    - ""
+                    -   - !Ref EnvironmentName
+                        - "-bastion-host-launch-template-"
+                        -   Ref: "AWS::Region"
+
+    BastionHostInstance1a:
+        Type: AWS::EC2::Instance
+        Properties:
+            NetworkInterfaces:
+                -   DeviceIndex: 0
+                    SubnetId:
+                        Fn::ImportValue:
+                            Fn::Join:
+                                - ''
+                                -   - !Ref EnvironmentName
+                                    - "-public-subnet-"
+                                    -   Ref: "AWS::Region"
+                                    - "-a"
+            LaunchTemplate:
+                LaunchTemplateId:
+                    Ref: "WebServerLaunchTemplate"
+                Version:
+                    Fn::GetAtt: "WebServerLaunchTemplate.LatestVersionNumber"
+            Tags:
+                -   Key: "Name"
+                    Value:
+                        Fn::Join:
+                            - ""
+                            -   - !Ref EnvironmentName
+                                - "-bastion-host-"
+                                -   Fn::Select:
+                                        - 0
+                                        -   Fn::GetAZs:
+                                                Ref: "AWS::Region"
+
+    BastionHostInstance1b:
+        Type: AWS::EC2::Instance
+        Properties:
+            NetworkInterfaces:
+                -   DeviceIndex: 0
+                    SubnetId:
+                        Fn::ImportValue:
+                            Fn::Join:
+                                - ''
+                                -   - !Ref EnvironmentName
+                                    - "-public-subnet-"
+                                    -   Ref: "AWS::Region"
+                                    - "-b"
+            LaunchTemplate:
+                LaunchTemplateId:
+                    Ref: "WebServerLaunchTemplate"
+                Version:
+                    Fn::GetAtt: "WebServerLaunchTemplate.LatestVersionNumber"
+            Tags:
+                -   Key: "Name"
+                    Value:
+                        Fn::Join:
+                            - ""
+                            -   - !Ref EnvironmentName
+                                - "-bastion-host-"
+                                -   Fn::Select:
+                                        - 1
+                                        -   Fn::GetAZs:
+                                                Ref: "AWS::Region"

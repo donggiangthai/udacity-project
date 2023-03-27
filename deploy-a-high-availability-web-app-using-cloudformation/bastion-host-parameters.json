@@ -1,0 +1,22 @@
+[
+	{
+		"ParameterKey": "EnvironmentName",
+		"ParameterValue": "ThaiDG-Udacity-second-project"
+	},
+	{
+		"ParameterKey": "AdministratorManagedPolicy",
+		"ParameterValue": "arn:aws:iam::aws:policy/AdministratorAccess"
+	},
+	{
+		"ParameterKey": "InstanceType",
+		"ParameterValue": "t2.micro"
+	},
+	{
+		"ParameterKey": "KeyPair",
+		"ParameterValue": "thaidg-bastion-host-key-pair"
+	},
+	{
+		"ParameterKey": "ImageId",
+		"ParameterValue": "al2023-ami-us-east-1"
+	}
+]
