@@ -217,7 +217,7 @@ class CloudFormationClient:
 	def change_set(
 			self,
 			create_change_set_input: CreateChangeSetInputRequestTypeDef
-	) -> EmptyResponseMetadataTypeDef:
+	) -> StackCreateCompleteWaiter | StackUpdateCompleteWaiter | StackDeleteCompleteWaiter | dict[str, Any]:
 		"""
 		For handle change set within CREATE or UPDATE behavior.
 		This function will replace create_stack and update_stack also
@@ -305,11 +305,33 @@ class CloudFormationClient:
 				print(json.dumps(change_set_response, indent=4, default=str))
 				if 'AVAILABLE' in change_set_response['ExecutionStatus']:
 					if 'yes' in input("Do you want to execute change set? ").lower():
-						execute_response = self._awsClient.execute_change_set(
-							ChangeSetName=change_set_arn,
-							StackName=create_change_set_input['StackName'],
-						)
-						return execute_response
+						try:
+							self._awsClient.execute_change_set(
+								ChangeSetName=change_set_arn,
+								StackName=create_change_set_input['StackName'],
+							)
+						except ClientError as error:
+							raise error
+						else:
+							if 'CREATE' in create_change_set_input['ChangeSetType']:
+								waiter_name: Literal['stack_create_complete'] = 'stack_create_complete'
+							elif 'UPDATE' in create_change_set_input['ChangeSetType']:
+								waiter_name: Literal['stack_update_complete'] = 'stack_update_complete'
+							else:
+								raise ValueError("Stack Import didn't implementation yet")
+							stack_waiter = self._awsClient.get_waiter(waiter_name)
+							try:
+								stack_waiter.wait(
+									StackName=create_change_set_input['StackName'],
+									WaiterConfig={
+										'Delay': 5,
+										'MaxAttempts': 150
+									}
+								)
+							except WaiterError as wt_err:
+								raise wt_err
+							else:
+								return stack_waiter
 					else:
 						try:
 							delete_change_set_response = self._awsClient.delete_change_set(
@@ -360,7 +382,7 @@ class CloudFormationClient:
 		else:
 			return response
 
-	def delete_stack(self, stack_name: str) -> EmptyResponseMetadataTypeDef:
+	def delete_stack(self, stack_name: str) -> StackDeleteCompleteWaiter:
 		"""
 		The function to represent for the delete_stack API of Cloud Formation SDK
 		Args:
@@ -390,7 +412,7 @@ class CloudFormationClient:
 				raise wt_err
 			else:
 				print("Stack deleted.")
-				return response
+				return delete_waiter
 
 	def handle(self, option: str) -> None:
 		if "create" in option:
