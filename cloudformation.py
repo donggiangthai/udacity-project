@@ -229,7 +229,13 @@ class CloudFormationClient:
 				if 'ROLLBACK_COMPLETE' not in stack_status:
 					roll_back_waiter = self._awsClient.get_waiter('stack_rollback_complete')
 					try:
-						roll_back_waiter.wait(StackName=create_change_set_input['StackName'])
+						roll_back_waiter.wait(
+							StackName=create_change_set_input['StackName'],
+							WaiterConfig={
+								'Delay': 5,
+								'MaxAttempts': 150
+							}
+						)
 					except WaiterError as wt_err:
 						print(wt_err.last_response['StatusReason'])
 						raise wt_err
@@ -267,6 +273,10 @@ class CloudFormationClient:
 				change_set_waiter.wait(
 					ChangeSetName=change_set_arn,
 					StackName=create_change_set_input['StackName'],
+					WaiterConfig={
+						'Delay': 5,
+						'MaxAttempts': 150
+					}
 				)
 			except WaiterError as wt_err:
 				print(wt_err.last_response['StatusReason'])
@@ -352,7 +362,13 @@ class CloudFormationClient:
 		else:
 			delete_waiter = self._awsClient.get_waiter('stack_delete_complete')
 			try:
-				delete_waiter.wait(StackName=stack_name)
+				delete_waiter.wait(
+					StackName=stack_name,
+					WaiterConfig={
+						'Delay': 5,
+						'MaxAttempts': 150
+					}
+				)
 			except WaiterError as wt_err:
 				print(wt_err.last_response['StatusReason'])
 				raise wt_err

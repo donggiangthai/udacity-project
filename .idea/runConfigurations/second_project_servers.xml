@@ -1,5 +1,5 @@
 <component name="ProjectRunConfigurationManager">
-  <configuration default="false" name="test" type="PythonConfigurationType" factoryName="Python">
+  <configuration default="false" name="second-project-servers" type="PythonConfigurationType" factoryName="Python">
     <module name="deploy-infrastructure-as-code" />
     <option name="INTERPRETER_OPTIONS" value="" />
     <option name="PARENT_ENVS" value="true" />
@@ -13,7 +13,7 @@
     <option name="ADD_CONTENT_ROOTS" value="true" />
     <option name="ADD_SOURCE_ROOTS" value="true" />
     <option name="SCRIPT_NAME" value="$PROJECT_DIR$/cloudformation.py" />
-    <option name="PARAMETERS" value="create --stack-name TestCFN --template-body .\deploy-a-high-availability-web-app-using-cloudformation\test.yml --parameters-file .\deploy-a-high-availability-web-app-using-cloudformation\test-parameters.json --capabilities &quot;CAPABILITY_IAM&quot; &quot;CAPABILITY_NAMED_IAM&quot;" />
+    <option name="PARAMETERS" value="create --stack-name Servers --template-body .\deploy-a-high-availability-web-app-using-cloudformation\servers.yml --parameters-file .\deploy-a-high-availability-web-app-using-cloudformation\servers-parameters.json --capabilities &quot;CAPABILITY_IAM&quot; &quot;CAPABILITY_NAMED_IAM&quot;" />
     <option name="SHOW_COMMAND_LINE" value="false" />
     <option name="EMULATE_TERMINAL" value="true" />
     <option name="MODULE_MODE" value="false" />
