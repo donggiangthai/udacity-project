@@ -420,7 +420,7 @@ class CloudFormationClient:
 		if "create" in option:
 			response = self.change_set(
 				self.get_create_change_set_input(
-					stack_name=args["stack_name"],
+					stack_name=args["stack_name"][0],
 					template_file_name=args["template_body"],
 					change_set_type='CREATE'
 				)
@@ -429,7 +429,7 @@ class CloudFormationClient:
 		if "update" in option:
 			response = self.change_set(
 				self.get_create_change_set_input(
-					stack_name=args["stack_name"],
+					stack_name=args["stack_name"][0],
 					template_file_name=args["template_body"],
 					change_set_type='UPDATE'
 				)
