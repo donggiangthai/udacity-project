@@ -38,9 +38,10 @@ parser = argparse.ArgumentParser(
 )
 parser.add_argument(
 	'-s', '--stack-name',
+	nargs="+",
 	required=True,
 	type=str,
-	help='CloudFormation stack name'
+	help='CloudFormation stack name, can be a list for multiple deletion'
 )
 parser.add_argument(
 	'-t', '--template-body',
@@ -256,7 +257,7 @@ class CloudFormationClient:
 						print(wt_err.last_response['StatusReason'])
 						raise wt_err
 				try:
-					self.delete_stack(stack_name=create_change_set_input['StackName'])
+					self.delete_stack(stack_name=[create_change_set_input['StackName']])
 				except ClientError as error:
 					raise error
 				else:
@@ -342,12 +343,13 @@ class CloudFormationClient:
 							raise error
 						if create_change_set_input['ChangeSetType'] == 'CREATE':
 							try:
-								delete_stack_response = self.delete_stack(
-									stack_name=create_change_set_input['StackName'])
+								self.delete_stack(
+									stack_name=[create_change_set_input['StackName']]
+								)
 							except ClientError as error:
 								raise error
 							else:
-								return delete_stack_response
+								print("Cleaned stack.")
 						else:
 							return delete_change_set_response
 				else:
@@ -382,7 +384,7 @@ class CloudFormationClient:
 		else:
 			return response
 
-	def delete_stack(self, stack_name: str) -> StackDeleteCompleteWaiter:
+	def delete_stack(self, stack_name: list) -> None:
 		"""
 		The function to represent for the delete_stack API of Cloud Formation SDK
 		Args:
@@ -391,28 +393,28 @@ class CloudFormationClient:
 		Returns:
 
 		"""
-		try:
-			response = self._awsClient.delete_stack(
-				StackName=stack_name,
-			)
-		except ClientError as error:
-			raise error
-		else:
-			delete_waiter = self._awsClient.get_waiter('stack_delete_complete')
+		for item in stack_name:
 			try:
-				delete_waiter.wait(
-					StackName=stack_name,
-					WaiterConfig={
-						'Delay': 5,
-						'MaxAttempts': 150
-					}
+				self._awsClient.delete_stack(
+					StackName=item,
 				)
-			except WaiterError as wt_err:
-				print(wt_err.last_response['StatusReason'])
-				raise wt_err
+			except ClientError as error:
+				raise error
 			else:
-				print("Stack deleted.")
-				return delete_waiter
+				delete_waiter = self._awsClient.get_waiter('stack_delete_complete')
+				try:
+					delete_waiter.wait(
+						StackName=item,
+						WaiterConfig={
+							'Delay': 5,
+							'MaxAttempts': 150
+						}
+					)
+				except WaiterError as wt_err:
+					print(wt_err.last_response['StatusReason'])
+					raise wt_err
+				else:
+					print(f"Stack {item} deleted.")
 
 	def handle(self, option: str) -> None:
 		if "create" in option:
@@ -434,8 +436,7 @@ class CloudFormationClient:
 			)
 			print(json.dumps(response, indent=4, default=str))
 		if "delete" in option:
-			response = self.delete_stack(stack_name=args["stack_name"])
-			print(json.dumps(response, indent=4, default=str))
+			self.delete_stack(stack_name=args["stack_name"])
 
 
 if __name__ == "__main__":
