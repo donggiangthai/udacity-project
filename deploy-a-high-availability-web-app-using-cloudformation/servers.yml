@@ -282,18 +282,6 @@ Resources:
                                 -   Ref: "AWS::Region"
 
 Outputs:
-    WebAccessSecurityGroup:
-        Description: "Output the security group id for the server"
-        Value:
-            Ref: "WebServerSecurityGroup"
-        Export:
-            Name:
-                Fn::Join:
-                    - ""
-                    -   - !Ref EnvironmentName
-                        - "-web-server-sg-"
-                        -   Ref: "AWS::Region"
-
     WebServerLoadBalancerURL:
         Description: "Load balancer URL within the http:// in front"
         Value:
@@ -319,3 +307,27 @@ Outputs:
                     - ""
                     -   - !Ref EnvironmentName
                         - "-WebServerInstanceProfile"
+
+    WebServerSecurityGroupId:
+        Description: "The web server security group id"
+        Value:
+            Ref: "WebServerSecurityGroup"
+        Export:
+            Name:
+                Fn::Join:
+                    - ""
+                    -   - !Ref EnvironmentName
+                        - "-web-server-sg-"
+                        - Ref: "AWS::Region"
+
+    LoadBalancerSecurityGroupId:
+        Description: "The load balancer security group id"
+        Value:
+            Ref: "LoadBalancerSecurityGroup"
+        Export:
+            Name:
+                Fn::Join:
+                    - ""
+                    -   - !Ref EnvironmentName
+                        - "-load-balancer-sg-"
+                        - Ref: "AWS::Region"

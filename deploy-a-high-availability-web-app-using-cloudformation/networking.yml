@@ -381,7 +381,7 @@ Outputs:
                     - ''
                     -   - !Ref EnvironmentName
                         - "-vpc-id-"
-                        - Ref: "AWS::Region"
+                        -   Ref: "AWS::Region"
 
     PublicRouteTable1a:
         Description: "A reference to the created public route table in the Availability Zone a"
@@ -516,3 +516,29 @@ Outputs:
                     -   - !Ref EnvironmentName
                         - "-private-subnets-"
                         -   Ref: "AWS::Region"
+
+    PublicSubnetCIDR1a:
+        Description: "Public subnet CIDR block in the Availability Zone a"
+        Value:
+          !Ref PublicSubnetCIDR1a
+        Export:
+            Name:
+                Fn::Join:
+                    - ""
+                    -   - !Ref EnvironmentName
+                        - "-public-subnet-cidr-"
+                        -   Ref: "AWS::Region"
+                        - "-a"
+
+    PublicSubnetCIDR1b:
+        Description: "Public subnet CIDR block in the Availability Zone b"
+        Value:
+          !Ref PublicSubnetCIDR1b
+        Export:
+            Name:
+                Fn::Join:
+                    - ""
+                    -   - !Ref EnvironmentName
+                        - "-public-subnet-cidr-"
+                        -   Ref: "AWS::Region"
+                        - "-b"

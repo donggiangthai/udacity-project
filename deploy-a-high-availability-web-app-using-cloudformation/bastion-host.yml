@@ -62,8 +62,54 @@ Resources:
             IpProtocol: "tcp"
             FromPort: 22
             ToPort: 22
-            CidrIp: "0.0.0.0/0"
+            CidrIp: "42.118.70.121/32"
             Description: "Allow SSH to my IP"
+
+    WebServerInboundRoleSSH1a:
+        Type: AWS::EC2::SecurityGroupIngress
+        Properties:
+            GroupId:
+                Fn::ImportValue:
+                    Fn::Join:
+                        - ""
+                        -   - !Ref EnvironmentName
+                            - "-web-server-sg-"
+                            -   Ref: "AWS::Region"
+            IpProtocol: "tcp"
+            FromPort: 22
+            ToPort: 22
+            CidrIp:
+                Fn::ImportValue:
+                    Fn::Join:
+                        - ""
+                        -   - !Ref EnvironmentName
+                            - "-public-subnet-cidr-"
+                            -   Ref: "AWS::Region"
+                            - "-a"
+            Description: "Allow SSH to the bastion host in the Availability Zone a"
+
+    WebServerInboundRoleSSH1b:
+        Type: AWS::EC2::SecurityGroupIngress
+        Properties:
+            GroupId:
+                Fn::ImportValue:
+                    Fn::Join:
+                        - ""
+                        -   - !Ref EnvironmentName
+                            - "-web-server-sg-"
+                            -   Ref: "AWS::Region"
+            IpProtocol: "tcp"
+            FromPort: 22
+            ToPort: 22
+            CidrIp:
+                Fn::ImportValue:
+                    Fn::Join:
+                        - ""
+                        -   - !Ref EnvironmentName
+                            - "-public-subnet-cidr-"
+                            -   Ref: "AWS::Region"
+                            - "-b"
+            Description: "Allow SSH to the bastion host in the Availability Zone b"
 
     BastionHostRole:
         Type: AWS::IAM::Role
@@ -175,3 +221,20 @@ Resources:
                                         - 1
                                         -   Fn::GetAZs:
                                                 Ref: "AWS::Region"
+
+Outputs:
+    BastionHostInstanceConnection1a:
+        Description: "The connection for the bastion host in the Availability Zone a"
+        Value:
+            Fn::Join:
+                - ""
+                -   - "ec2-user@"
+                    -   Fn::GetAtt: "BastionHostInstance1a.PublicIp"
+
+    BastionHostInstanceConnection1b:
+        Description: "The connection for the bastion host in the Availability Zone b"
+        Value:
+            Fn::Join:
+                - ""
+                -   - "ec2-user@"
+                    -   Fn::GetAtt: "BastionHostInstance1b.PublicIp"
