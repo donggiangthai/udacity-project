@@ -1,6 +1,6 @@
 # Initializing environment
 
-Create a file called `credentials` and store the aws key as the `default` profile on your `.aws` folder inside of the `%USERPROFILE%`. If the `.aws` not exist, create one. Using `Ctrl+R` and enter the `%USERPROFILE%` to redirect you into the user folder.
+Create a file called `credentials` and store the aws key as the `default` profile on your `.aws` folder inside the `%USERPROFILE%`. If the `.aws` not exist, create one. Using `Ctrl+R` and enter the `%USERPROFILE%` to redirect you into the user folder.
 
 Here is the sample of `credentials` file
 
@@ -11,7 +11,7 @@ aws_secret_access_key = XYZ...ZYX
 aws_session_token = F...n//////////w...N/v...R+Z...4/O...C+E...a+jJ//g...c/9...u+8...b+x...A+D...I
 ```
 
-Beside that we can also having an extra file inside of the `.aws` folder called `config`. Here is an example of the `config` file
+Besides that we can also have an extra file inside the `.aws` folder called `config`. Here is an example of the `config` file
 
 ```
 [default]
@@ -27,7 +27,7 @@ Now run the command below:
 aws sts get-caller-identity
 ```
 
-If the response as below it mean you're setup your credential correctly.
+If the response as below it mean you're setting up your credential correctly.
 
 ```
 {

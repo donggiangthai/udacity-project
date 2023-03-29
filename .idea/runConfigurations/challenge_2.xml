@@ -1,15 +1,14 @@
 <component name="ProjectRunConfigurationManager">
-  <configuration default="false" name="challenge-2" type="PythonConfigurationType" factoryName="Python">
+  <configuration default="false" name="challenge-2" type="PythonConfigurationType" factoryName="Python" folderName="deploy-infrastructure-as-code">
     <module name="deploy-infrastructure-as-code" />
     <option name="INTERPRETER_OPTIONS" value="" />
     <option name="PARENT_ENVS" value="true" />
     <envs>
       <env name="PYTHONUNBUFFERED" value="1" />
     </envs>
-    <option name="SDK_HOME" value="C:\Users\ASUS\Desktop\code\Udacity\deploy-infrastructure-as-code\venv\lesson-2\Scripts\python.exe" />
-    <option name="SDK_NAME" value="Python 3.10 (lesson-2)" />
+    <option name="SDK_HOME" value="" />
     <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
-    <option name="IS_MODULE_SDK" value="false" />
+    <option name="IS_MODULE_SDK" value="true" />
     <option name="ADD_CONTENT_ROOTS" value="true" />
     <option name="ADD_SOURCE_ROOTS" value="true" />
     <option name="SCRIPT_NAME" value="$PROJECT_DIR$/cloudformation.py" />
