@@ -25,14 +25,16 @@ Set-Variable -Name lesson -Value deploy-a-high-availability-web-app-using-cloudf
   - Create venv folder and virtual environment
 
     ```
-    mkdir venv | `
+    mkdir venv; `
+    Set-Location .\venv\; `
     virtualenv infrastructure-as-code --python python3.10.10
     ```
 
   - Activate the virtual environment
 
     ```
-    .\venv\infrastructure-as-code\Scripts\activate
+    .\infrastructure-as-code\Scripts\activate; `
+    Set-Location ..\
     ```
 
 - Be-sure to install all dependencies package at the `requirements.txt` file
