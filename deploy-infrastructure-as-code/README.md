@@ -13,36 +13,48 @@ Set-Variable -Name lesson -Value deploy-a-high-availability-web-app-using-cloudf
 
 ### Note
 
-- Remember to always start at the script location
-- Virtualenv is suggested. My repository will ignore the venv folder that contains the virtual environment, so install the virtualenv and create one virtual environment for yourself follow these steps below:
+  * Remember to always start at the script location
 
-  - Install the virtualenv package
+  * Virtualenv is suggested. 
+    My repository will ignore the `venv` folder, 
+    which is the container for the virtual environments. 
+    So, install the virtualenv and create one for yourself by following these steps below:
+
+    * Install the virtualenv package
+
+      ```
+      pip install virtualenv
+      ```
+
+    * Create venv folder and virtual environment
+
+      ```
+      mkdir venv; `
+      Set-Location .\venv\; `
+      virtualenv infrastructure-as-code --python python3.10.10
+      ```
+
+    * Activate the virtual environment
+
+      ```
+      .\infrastructure-as-code\Scripts\activate; `
+      Set-Location ..\
+      ```
+
+  * Be-sure to install all dependencies package at the `requirements.txt` file
 
     ```
-    pip install virtualenv
+    pip install -r .\$course\requirements.txt
     ```
 
-  - Create venv folder and virtual environment
+  * In the cloudformation.py script, 
+    I set the profile default as `ThaiDG-IaC`, use your own by passing the argument 
+    `-p/--profile-name <Your AWS profile name>` when running the script. 
+    Or you can modify at line 76.
 
-    ```
-    mkdir venv; `
-    Set-Location .\venv\; `
-    virtualenv infrastructure-as-code --python python3.10.10
-    ```
+  * You can even `create` or `update` the CloudFormation stack by using the same string `create` as a value for the `option` argument.
 
-  - Activate the virtual environment
-
-    ```
-    .\infrastructure-as-code\Scripts\activate; `
-    Set-Location ..\
-    ```
-
-- Be-sure to install all dependencies package at the `requirements.txt` file
-
-  ```
-  pip install -r .\$course\requirements.txt
-  ```
-
+  * Using `python3 cloudformation.py --help` for help.
 
 ### Creating the network
 
