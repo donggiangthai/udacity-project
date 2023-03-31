@@ -16,14 +16,15 @@ jobs:
     # Add steps to the job
     # See: https://circleci.com/docs/configuration-reference/#steps
     steps:
+      # This command will pull all of the files into a directory called project which can be found at ~/project.
       - checkout
       - run:
           name: "Create Cloudformation Stack"
           command: |
             aws cloudformation deploy \
             --stack-name EC2Instance-${CIRCLE_WORKFLOW_ID:0:5} \
-            --template-file build-cicd-pipeline\continuous-delivery\exercise\create-infrastructure\ec2-instances.yml \
-            --parameter-overrides build-cicd-pipeline\continuous-delivery\exercise\create-infrastructure\ec2-instances-parameters.json \
+            --template-file ~/project/build-cicd-pipeline/continuous-delivery/exercise/create-infrastructure/ec2-instances.yml \
+            --parameter-overrides file://~/project/build-cicd-pipeline/continuous-delivery/exercise/create-infrastructure/ec2-instances-parameters.json \
             --no-fail-on-empty-changeset \
             --region us-east-1
 
