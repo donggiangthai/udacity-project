@@ -22,7 +22,7 @@ jobs:
           name: "Create Cloudformation NetWorking Stack"
           command: |
             aws cloudformation deploy \
-            --stack-name NetWorking-${CIRCLE_WORKFLOW_ID:0:5} \
+            --stack-name NetWorking-CircleCI \
             --template-file ~/project/build-cicd-pipeline/continuous-delivery/exercise/create-infrastructure/networking.yml \
             --parameter-overrides file://~/project/build-cicd-pipeline/continuous-delivery/exercise/create-infrastructure/networking-parameters.json \
             --no-fail-on-empty-changeset \
@@ -42,7 +42,7 @@ jobs:
           name: "Create Cloudformation Security Stack"
           command: |
             aws cloudformation deploy \
-            --stack-name Security-${CIRCLE_WORKFLOW_ID:0:5} \
+            --stack-name Security-CircleCI \
             --template-file ~/project/build-cicd-pipeline/continuous-delivery/exercise/create-infrastructure/security.yml \
             --parameter-overrides file://~/project/build-cicd-pipeline/continuous-delivery/exercise/create-infrastructure/security-parameters.json \
             --no-fail-on-empty-changeset \
@@ -62,7 +62,7 @@ jobs:
           name: "Create Cloudformation Launch Template Stack"
           command: |
             aws cloudformation deploy \
-            --stack-name Launch-Template-${CIRCLE_WORKFLOW_ID:0:5} \
+            --stack-name Launch-Template-CircleCI \
             --template-file ~/project/build-cicd-pipeline/continuous-delivery/exercise/create-infrastructure/launch-template.yml \
             --parameter-overrides file://~/project/build-cicd-pipeline/continuous-delivery/exercise/create-infrastructure/launch-template-parameters.json \
             --no-fail-on-empty-changeset \
@@ -82,7 +82,7 @@ jobs:
           name: "Create Cloudformation EC2 Instances Stack"
           command: |
             aws cloudformation deploy \
-            --stack-name EC2-Instances-${CIRCLE_WORKFLOW_ID:0:5} \
+            --stack-name EC2-Instances-CircleCI \
             --template-file ~/project/build-cicd-pipeline/continuous-delivery/exercise/create-infrastructure/ec2-instances.yml \
             --parameter-overrides file://~/project/build-cicd-pipeline/continuous-delivery/exercise/create-infrastructure/ec2-instances-parameters.json \
             --no-fail-on-empty-changeset \
