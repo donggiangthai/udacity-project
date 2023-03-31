@@ -49,9 +49,9 @@ jobs:
             --stack-name Security-CircleCI \
             --template-file $TEMPLATE_DIR/security.yml \
             --parameter-overrides file://$TEMPLATE_DIR/security-parameters.json \
-            --capabilities CAPABILITY_IAM CAPABILITY_NAMED_IAM \ 
             --no-fail-on-empty-changeset \
-            --region us-east-1
+            --region us-east-1 \
+            --capabilities "CAPABILITY_IAM" "CAPABILITY_NAMED_IAM"
 
   create_launch_template:
     # Specify the execution environment. You can specify an image from Docker Hub or use one of our convenience images from CircleCI's Developer Hub.
