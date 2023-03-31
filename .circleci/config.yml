@@ -2,25 +2,34 @@
 # See: https://circleci.com/docs/configuration-reference
 version: 2.1
 
+orbs:
+  aws-cli: circleci/aws-cli@3.1.4
+
 # Define a job to be invoked later in a workflow.
 # See: https://circleci.com/docs/configuration-reference/#jobs
 jobs:
-  say-hello:
+  create_infrastructure:
     # Specify the execution environment. You can specify an image from Docker Hub or use one of our convenience images from CircleCI's Developer Hub.
     # See: https://circleci.com/docs/configuration-reference/#executor-job
     docker:
-      - image: cimg/base:stable
+      - image: amazon/aws-cli
     # Add steps to the job
     # See: https://circleci.com/docs/configuration-reference/#steps
     steps:
       - checkout
       - run:
-          name: "Say hello"
-          command: "echo Hello, World!"
+          name: "Create Cloudformation Stack"
+          command: |
+            aws cloudformation deploy \
+            --stack-name EC2Instance-${CIRCLE_WORKFLOW_ID:0:5} \
+            --template-file build-cicd-pipeline\continuous-delivery\exercise\create-infrastructure\ec2-instances.yml \
+            --parameter-overrides build-cicd-pipeline\continuous-delivery\exercise\create-infrastructure\ec2-instances-parameters.json \
+            --no-fail-on-empty-changeset \
+            --region us-east-1
 
 # Orchestrate jobs using workflows
 # See: https://circleci.com/docs/configuration-reference/#workflows
 workflows:
-  say-hello-workflow:
+  create-infrastructure-workflow:
     jobs:
-      - say-hello
+      - create_infrastructure
