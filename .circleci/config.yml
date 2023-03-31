@@ -103,7 +103,7 @@ jobs:
     docker:
       - image: amazon/aws-cli
     environment:
-      INVENTORY_PATH: ~/project/build-cicd-pipeline/continuous-delivery/exercise/configuration-and-deployment/inventory
+      INVENTORY_DIR: ~/project/build-cicd-pipeline/continuous-delivery/exercise/configuration-and-deployment
       PROJECT_TAG: ThaiDG-Udacity-ci-cd-exercise-ansible-exercise
     # Add steps to the job
     # See: https://circleci.com/docs/configuration-reference/#steps
@@ -113,21 +113,21 @@ jobs:
       - run:
           name: "Clean up the inventory file"
           command: |
-            echo [all] > $INVENTORY_PATH
+            echo [all] > $INVENTORY_DIR/inventory
       - run:
           name: "Get EC2 Instances Public IP Address"
           command: |
             aws ec2 describe-instances \
             --query 'Reservations[*].Instances[*].PublicIpAddress' \
             --filters "Name=tag:Project,Values=$PROJECT_TAG" \
-            --output text >> $INVENTORY_PATH
+            --output text >> $INVENTORY_DIR/inventory
 
   # Exercise: Config and Deployment
   configure_infrastructure: 
     docker:
       - image: python:3.10.10-alpine3.17
     environment:
-      CONFIG_PATH: ~/project/build-cicd-pipeline/continuous-delivery/exercise/configuration-and-deployment
+      CONFIG_DIR: ~/project/build-cicd-pipeline/continuous-delivery/exercise/configuration-and-deployment
     steps:
       - checkout
       - add_ssh_keys:
@@ -140,15 +140,19 @@ jobs:
           name: Run Playbook and Configure server
           command: |
             ansible-playbook \
-            -i $CONFIG_PATH/inventory \
-            $CONFIG_PATH/main.yml
+            -i $CONFIG_DIR/inventory \
+            $CONFIG_DIR/main.yml
 
 # Orchestrate jobs using workflows
 # See: https://circleci.com/docs/configuration-reference/#workflows
 workflows:
   create-infrastructure-workflow:
     jobs:
-      - create_network
+      - create_network:
+          filters:
+            branches:
+              only:
+                - master
       - create_security:
           requires:
             - "create_network"
