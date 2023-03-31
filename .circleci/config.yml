@@ -98,29 +98,34 @@ jobs:
             --region us-east-1
 
   add_publicipaddress_to_inventory:
+    executor: aws-cli/default
     # Specify the execution environment. You can specify an image from Docker Hub or use one of our convenience images from CircleCI's Developer Hub.
     # See: https://circleci.com/docs/configuration-reference/#executor-job
-    docker:
-      - image: amazon/aws-cli
     environment:
-      INVENTORY_DIR: ~/project/build-cicd-pipeline/continuous-delivery/exercise/configuration-and-deployment
       PROJECT_TAG: ThaiDG-Udacity-ci-cd-exercise-ansible-exercise
     # Add steps to the job
     # See: https://circleci.com/docs/configuration-reference/#steps
     steps:
       # This command will pull all of the files into a directory called project which can be found at ~/project.
       - checkout
-      - run:
-          name: "Clean up the inventory file"
-          command: |
-            echo [all] > $INVENTORY_DIR/inventory
+      - aws-cli/setup
       - run:
           name: "Get EC2 Instances Public IP Address"
           command: |
+            cd ~/project/build-cicd-pipeline/continuous-delivery/exercise/configuration-and-deployment/
             aws ec2 describe-instances \
             --query 'Reservations[*].Instances[*].PublicIpAddress' \
             --filters "Name=tag:Project,Values=$PROJECT_TAG" \
-            --output text >> $INVENTORY_DIR/inventory
+            --output text >> inventory
+      - run:
+          name: "Move inventory file into workspace"
+          command: |
+            cd ~/project/build-cicd-pipeline/continuous-delivery/exercise/configuration-and-deployment/
+            mv inventory ~/inventory
+      - persist_to_workspace:
+          root: ~/
+          paths:
+            - "inventory"
 
   # Exercise: Config and Deployment
   configure_infrastructure: 
@@ -136,23 +141,20 @@ jobs:
           name: "Install Ansible"
           command: |
             apk add --update ansible
+      - attach_workspace:
+          at: ~/
       - run:
           name: Run Playbook and Configure server
           command: |
-            ansible-playbook \
-            -i $CONFIG_DIR/inventory \
-            $CONFIG_DIR/main.yml
+            cd ~/project/build-cicd-pipeline/continuous-delivery/exercise/configuration-and-deployment/
+            ansible-playbook -i ~/inventory main.yml
 
 # Orchestrate jobs using workflows
 # See: https://circleci.com/docs/configuration-reference/#workflows
 workflows:
   create-infrastructure-workflow:
     jobs:
-      - create_network:
-          filters:
-            branches:
-              only:
-                - master
+      - create_network
       - create_security:
           requires:
             - "create_network"
