@@ -1,0 +1,103 @@
+Description: >
+    ThaiDG
+    For creating the EC2 instances to exercise Ansible playbook
+
+Parameters:
+    EnvironmentName:
+        Type: String
+        Description: "The environment name as a prefix"
+    InstanceType:
+        Type: String
+        Description: "EC2 instance type."
+        AllowedValues:
+            - t2.micro
+            - t3.micro
+    KeyPair:
+        Type: AWS::SSM::Parameter::Value<AWS::EC2::KeyPair::KeyName>
+        Description: "AWS key pair in us-east-1, stored in SSM Parameter Store."
+    ImageId:
+        Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
+        Description: "AWS AMI in us-east-1, stored in SSM Parameter Store."
+
+Resources:
+    EC2InstanceLaunchTemplate:
+        Type: AWS::EC2::LaunchTemplate
+        Properties:
+            LaunchTemplateData:
+                ImageId: !Ref ImageId
+                KeyName: !Ref KeyPair
+                InstanceType: !Ref InstanceType
+                IamInstanceProfile:
+                    Name:
+                        Fn::ImportValue:
+                            Fn::Join:
+                                - ""
+                                -   - !Ref EnvironmentName
+                                    - "-iam-instance-profile"
+                NetworkInterfaces:
+                    -   AssociatePublicIpAddress: true
+                        DeleteOnTermination: true
+                        DeviceIndex: 0
+                        Groups:
+                            -   Fn::ImportValue:
+                                    Fn::Join:
+                                        - ""
+                                        -   - !Ref EnvironmentName
+                                            - "-ec2-instance-sg-"
+                                            -   Ref: "AWS::Region"
+                TagSpecifications:
+                    -   ResourceType: "instance"
+                        Tags:
+                            -   Key: "Project"
+                                Value:
+                                    Fn::Join:
+                                        - ""
+                                        -   - !Ref EnvironmentName
+                                            - "-ansible-exercise"
+            TagSpecifications:
+                -   ResourceType: "launch-template"
+                    Tags:
+                        -   Key: "Name"
+                            Value:
+                                Fn::Join:
+                                    - ""
+                                    -   - !Ref EnvironmentName
+                                        - "-launch-template-"
+                                        -   Ref: "AWS::Region"
+                        -   Key: "Project"
+                            Value:
+                                Fn::Join:
+                                    - ""
+                                    -   - !Ref EnvironmentName
+                                        - "-ansible-exercise"
+            LaunchTemplateName:
+                Fn::Join:
+                    - ""
+                    -   - !Ref EnvironmentName
+                        - "-ec2-instance-launch-template-"
+                        -   Ref: "AWS::Region"
+
+Outputs:
+    LaunchTemplateId:
+        Description: "Launch template id"
+        Value:
+            Ref: "EC2InstanceLaunchTemplate"
+        Export:
+            Name:
+                Fn::Join:
+                    - ""
+                    -   - !Ref EnvironmentName
+                        - "-launch-template-id"
+                        -   Ref: "AWS::Region"
+
+    LaunchTemplateVersion:
+        Description: "Launch template version"
+        Value:
+            Fn::GetAtt: "EC2InstanceLaunchTemplate.LatestVersionNumber"
+        Export:
+            Name:
+                Fn::Join:
+                    - ""
+                    -   - !Ref EnvironmentName
+                        - "-launch-template-version"
+                        -   Ref: "AWS::Region"

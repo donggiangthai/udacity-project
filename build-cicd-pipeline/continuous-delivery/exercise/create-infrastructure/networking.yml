@@ -1,0 +1,545 @@
+Description: >
+    ThaiDG
+    For creating the network to exercise Ansible playbook
+
+Parameters:
+    EnvironmentName:
+        Description: "An environment name that will be prefixed to the resources name and also the exports name"
+        Type: String
+        Default: ""
+
+    VpcCIDR:
+        Description: "The VPC CIDR block"
+        Type: String
+        Default: ""
+
+    PublicSubnetCIDR1a:
+        Description: "Public subnet CIDR block for the Availability Zone a"
+        Type: String
+        Default: ""
+
+    PublicSubnetCIDR1b:
+        Description: "Public subnet CIDR block for the Availability Zone b"
+        Type: String
+        Default: ""
+
+    PrivateSubnetCIDR1a:
+        Description: "Private subnet CIDR block for the Availability Zone a"
+        Type: String
+        Default: ""
+
+    PrivateSubnetCIDR1b:
+        Description: "Private subnet CIDR block for the Availability Zone b"
+        Type: String
+        Default: ""
+
+Resources:
+    VPC:
+        Type: AWS::EC2::VPC
+        Properties:
+            CidrBlock: !Ref VpcCIDR
+            EnableDnsHostnames: true
+            Tags:
+                -   Key: Name
+                    Value:
+                        Fn::Join:
+                            - ''
+                            -   - !Ref EnvironmentName
+                                - "-vpc-"
+                                -   Ref: "AWS::Region"
+
+    InternetGateway:
+        Type: AWS::EC2::InternetGateway
+        Properties:
+            Tags:
+                -   Key: "Name"
+                    Value:
+                        Fn::Join:
+                            - ''
+                            -   - !Ref EnvironmentName
+                                - "-internet-gateway-"
+                                -   Ref: "AWS::Region"
+
+    InternetGatewayAttachment:
+        Type: AWS::EC2::VPCGatewayAttachment
+        Properties:
+            InternetGatewayId:
+                Ref: "InternetGateway"
+            VpcId:
+                Ref: "VPC"
+
+    PublicSubnet1a:
+        Type: AWS::EC2::Subnet
+        Properties:
+            VpcId:
+                Ref: "VPC"
+            AvailabilityZone:
+                Fn::Select:
+                    - 0
+                    -   Fn::GetAZs:
+                            Ref: "AWS::Region"
+            CidrBlock: !Ref PublicSubnetCIDR1a
+            MapPublicIpOnLaunch: true
+            Tags:
+                -   Key: "Name"
+                    Value:
+                        Fn::Join:
+                            - ''
+                            -   - !Ref EnvironmentName
+                                - "-public-subnet-"
+                                -   Fn::Select:
+                                        - 0
+                                        -   Fn::GetAZs:
+                                                Ref: "AWS::Region"
+
+    PublicSubnet1b:
+        Type: AWS::EC2::Subnet
+        Properties:
+            VpcId:
+                Ref: "VPC"
+            AvailabilityZone:
+                Fn::Select:
+                    - 1
+                    -   Fn::GetAZs:
+                            Ref: "AWS::Region"
+            CidrBlock: !Ref PublicSubnetCIDR1b
+            MapPublicIpOnLaunch: true
+            Tags:
+                -   Key: "Name"
+                    Value:
+                        Fn::Join:
+                            - ''
+                            -   - !Ref EnvironmentName
+                                - "-public-subnet-"
+                                -   Fn::Select:
+                                        - 1
+                                        -   Fn::GetAZs:
+                                                Ref: "AWS::Region"
+
+    PrivateSubnet1a:
+        Type: AWS::EC2::Subnet
+        Properties:
+            VpcId:
+                Ref: "VPC"
+            AvailabilityZone:
+                Fn::Select:
+                    - 0
+                    -   Fn::GetAZs:
+                            Ref: "AWS::Region"
+            CidrBlock: !Ref PrivateSubnetCIDR1a
+            MapPublicIpOnLaunch: false
+            Tags:
+                -   Key: "Name"
+                    Value:
+                        Fn::Join:
+                            - ''
+                            -   - !Ref EnvironmentName
+                                - "-private-subnet-"
+                                -   Fn::Select:
+                                        - 0
+                                        -   Fn::GetAZs:
+                                                Ref: "AWS::Region"
+
+    PrivateSubnet1b:
+        Type: AWS::EC2::Subnet
+        Properties:
+            VpcId:
+                Ref: "VPC"
+            AvailabilityZone:
+                Fn::Select:
+                    - 1
+                    -   Fn::GetAZs:
+                            Ref: "AWS::Region"
+            CidrBlock: !Ref PrivateSubnetCIDR1b
+            MapPublicIpOnLaunch: false
+            Tags:
+                -   Key: "Name"
+                    Value:
+                        Fn::Join:
+                            - ''
+                            -   - !Ref EnvironmentName
+                                - "-private-subnet-"
+                                -   Fn::Select:
+                                        - 1
+                                        -   Fn::GetAZs:
+                                                Ref: "AWS::Region"
+
+#    NatEIP1a:
+#        Type: AWS::EC2::EIP
+#        Properties:
+#            Domain: "vpc"
+#            Tags:
+#                -   Key: "Name"
+#                    Value:
+#                        Fn::Join:
+#                            - ""
+#                            -   - !Ref EnvironmentName
+#                                - "-nat-eip-"
+#                                -   Fn::Select:
+#                                        - 0
+#                                        -   Fn::GetAZs:
+#                                                Ref: "AWS::Region"
+#
+#    NatEIP1b:
+#        Type: AWS::EC2::EIP
+#        Properties:
+#            Domain: "vpc"
+#            Tags:
+#                -   Key: "Name"
+#                    Value:
+#                        Fn::Join:
+#                            - ""
+#                            -   - !Ref EnvironmentName
+#                                - "-nat-eip-"
+#                                -   Fn::Select:
+#                                        - 1
+#                                        -   Fn::GetAZs:
+#                                                Ref: "AWS::Region"
+#
+#    NatGateway1a:
+#        Type: AWS::EC2::NatGateway
+#        Properties:
+#            AllocationId:
+#                Fn::GetAtt: "NatEIP1a.AllocationId"
+#            ConnectivityType: "public"
+#            SubnetId:
+#                Ref: "PublicSubnet1a"
+#            Tags:
+#                -   Key: "Name"
+#                    Value:
+#                        Fn::Join:
+#                            - ""
+#                            -   - !Ref EnvironmentName
+#                                - "-nat-gateway-"
+#                                -   Fn::Select:
+#                                        - 0
+#                                        -   Fn::GetAZs:
+#                                                Ref: "AWS::Region"
+#
+#    NatGateway1b:
+#        Type: AWS::EC2::NatGateway
+#        Properties:
+#            AllocationId:
+#                Fn::GetAtt: "NatEIP1b.AllocationId"
+#            ConnectivityType: "public"
+#            SubnetId:
+#                Ref: "PublicSubnet1b"
+#            Tags:
+#                -   Key: "Name"
+#                    Value:
+#                        Fn::Join:
+#                            - ""
+#                            -   - !Ref EnvironmentName
+#                                - "-nat-gateway-"
+#                                -   Fn::Select:
+#                                        - 1
+#                                        -   Fn::GetAZs:
+#                                                Ref: "AWS::Region"
+
+    PublicRouteTable1a:
+        Type: AWS::EC2::RouteTable
+        Properties:
+            VpcId:
+                Ref: "VPC"
+            Tags:
+                -   Key: "Name"
+                    Value:
+                        Fn::Join:
+                            - ''
+                            -   - !Ref EnvironmentName
+                                - "-public-route-table-"
+                                -   Fn::Select:
+                                        - 0
+                                        -   Fn::GetAZs:
+                                                Ref: "AWS::Region"
+
+    PublicRouteTable1b:
+        Type: AWS::EC2::RouteTable
+        Properties:
+            VpcId:
+                Ref: "VPC"
+            Tags:
+                -   Key: "Name"
+                    Value:
+                        Fn::Join:
+                            - ''
+                            -   - !Ref EnvironmentName
+                                - "-public-route-table-"
+                                -   Fn::Select:
+                                        - 1
+                                        -   Fn::GetAZs:
+                                                Ref: "AWS::Region"
+
+    PublicOutboundRouteTable1a:
+        Type: AWS::EC2::Route
+        Properties:
+            RouteTableId:
+                Ref: "PublicRouteTable1a"
+            DestinationCidrBlock: 0.0.0.0/0
+            GatewayId:
+                Ref: "InternetGateway"
+
+    PublicOutboundRouteTable1b:
+        Type: AWS::EC2::Route
+        Properties:
+            RouteTableId:
+                Ref: "PublicRouteTable1b"
+            DestinationCidrBlock: 0.0.0.0/0
+            GatewayId:
+                Ref: "InternetGateway"
+
+    AssociationPublicSubnet1a:
+        Type: AWS::EC2::SubnetRouteTableAssociation
+        Properties:
+            RouteTableId:
+                Ref: "PublicRouteTable1a"
+            SubnetId:
+                Ref: "PublicSubnet1a"
+
+    AssociationPublicSubnet1b:
+        Type: AWS::EC2::SubnetRouteTableAssociation
+        Properties:
+            RouteTableId:
+                Ref: "PublicRouteTable1b"
+            SubnetId:
+                Ref: "PublicSubnet1b"
+
+    PrivateRouteTable1a:
+        Type: AWS::EC2::RouteTable
+        Properties:
+            VpcId:
+                Ref: "VPC"
+            Tags:
+                -   Key: "Name"
+                    Value:
+                        Fn::Join:
+                            - ""
+                            -   - !Ref EnvironmentName
+                                - "-private-route-table-"
+                                -   Fn::Select:
+                                        - 0
+                                        -   Fn::GetAZs:
+                                                Ref: "AWS::Region"
+
+    PrivateRouteTable1b:
+        Type: AWS::EC2::RouteTable
+        Properties:
+            VpcId:
+                Ref: "VPC"
+            Tags:
+                -   Key: "Name"
+                    Value:
+                        Fn::Join:
+                            - ""
+                            -   - !Ref EnvironmentName
+                                - "-private-route-table-"
+                                -   Fn::Select:
+                                        - 1
+                                        -   Fn::GetAZs:
+                                                Ref: "AWS::Region"
+
+#    PrivateOutboundRouteTable1a:
+#        Type: AWS::EC2::Route
+#        Properties:
+#            RouteTableId:
+#                Ref: "PrivateRouteTable1a"
+#            DestinationCidrBlock: 0.0.0.0/0
+#            NatGatewayId:
+#                Ref: "NatGateway1a"
+#
+#    PrivateOutboundRouteTable1b:
+#        Type: AWS::EC2::Route
+#        Properties:
+#            RouteTableId:
+#                Ref: "PrivateRouteTable1b"
+#            DestinationCidrBlock: 0.0.0.0/0
+#            NatGatewayId:
+#                Ref: "NatGateway1b"
+
+    AssociationPrivateSubnet1a:
+        Type: AWS::EC2::SubnetRouteTableAssociation
+        Properties:
+            RouteTableId:
+                Ref: "PrivateRouteTable1a"
+            SubnetId:
+                Ref: "PrivateSubnet1a"
+
+    AssociationPrivateSubnet1b:
+        Type: AWS::EC2::SubnetRouteTableAssociation
+        Properties:
+            RouteTableId:
+                Ref: "PrivateRouteTable1b"
+            SubnetId:
+                Ref: "PrivateSubnet1b"
+
+Outputs:
+    VPC:
+        Description: "A reference to the created VPC"
+        Value: !Ref VPC
+        Export:
+            Name:
+                Fn::Join:
+                    - ''
+                    -   - !Ref EnvironmentName
+                        - "-vpc-id-"
+                        -   Ref: "AWS::Region"
+
+    PublicRouteTable1a:
+        Description: "A reference to the created public route table in the Availability Zone a"
+        Value:
+            Ref: "PublicRouteTable1a"
+        Export:
+            Name:
+                Fn::Join:
+                    - ''
+                    -   - !Ref EnvironmentName
+                        - "-public-route-table-"
+                        -   Ref: "AWS::Region"
+                        - "-a"
+
+    PublicRouteTable1b:
+        Description: "A reference to the created public route table in the Availability Zone b"
+        Value:
+            Ref: "PublicRouteTable1b"
+        Export:
+            Name:
+                Fn::Join:
+                    - ''
+                    -   - !Ref EnvironmentName
+                        - "-public-route-table-"
+                        -   Ref: "AWS::Region"
+                        - "-b"
+
+    PrivateRouteTable1a:
+        Description: "A reference to the created private route table in the Availability Zone a"
+        Value:
+            Ref: "PrivateRouteTable1a"
+        Export:
+            Name:
+                Fn::Join:
+                    - ""
+                    -   - !Ref EnvironmentName
+                        - "-private-route-table-"
+                        -   Ref: "AWS::Region"
+                        - "-a"
+
+    PrivateRouteTable1b:
+        Description: "A reference to the created private route table in the Availability Zone b"
+        Value:
+            Ref: "PrivateRouteTable1b"
+        Export:
+            Name:
+                Fn::Join:
+                    - ""
+                    -   - !Ref EnvironmentName
+                        - "-private-route-table-"
+                        -   Ref: "AWS::Region"
+                        - "-b"
+
+    PublicSubnet1a:
+        Description: "A reference to the created public subnet in the Availability Zone a"
+        Value:
+            Ref: "PublicSubnet1a"
+        Export:
+            Name:
+                Fn::Join:
+                    - ''
+                    -   - !Ref EnvironmentName
+                        - "-public-subnet-"
+                        -   Ref: "AWS::Region"
+                        - "-a"
+
+    PublicSubnet1b:
+        Description: "A reference to the created public subnet in the Availability Zone b"
+        Value:
+            Ref: "PublicSubnet1b"
+        Export:
+            Name:
+                Fn::Join:
+                    - ''
+                    -   - !Ref EnvironmentName
+                        - "-public-subnet-"
+                        -   Ref: "AWS::Region"
+                        - "-b"
+
+    PrivateSubnet1a:
+        Description: "A reference to the created private subnet in the Availability Zone a"
+        Value:
+            Ref: "PrivateSubnet1a"
+        Export:
+            Name:
+                Fn::Join:
+                    - ''
+                    -   - !Ref EnvironmentName
+                        - "-private-subnet-"
+                        -   Ref: "AWS::Region"
+                        - "-a"
+
+    PrivateSubnet1b:
+        Description: "A reference to the created private subnet in the Availability Zone b"
+        Value:
+            Ref: "PrivateSubnet1b"
+        Export:
+            Name:
+                Fn::Join:
+                    - ''
+                    -   - !Ref EnvironmentName
+                        - "-private-subnet-"
+                        -   Ref: "AWS::Region"
+                        - "-b"
+
+    PublicSubnets:
+        Description: "A list of the public subnets"
+        Value:
+            Fn::Join:
+                - ","
+                -   -   Ref: "PublicSubnet1a"
+                    -   Ref: "PublicSubnet1b"
+        Export:
+            Name:
+                Fn::Join:
+                    - ""
+                    -   - !Ref EnvironmentName
+                        - "-public-subnets-"
+                        -   Ref: "AWS::Region"
+
+    PrivateSubnets:
+        Description: "A list of the private subnets"
+        Value:
+            Fn::Join:
+                - ","
+                -   -   Ref: "PrivateSubnet1a"
+                    -   Ref: "PrivateSubnet1b"
+        Export:
+            Name:
+                Fn::Join:
+                    - ""
+                    -   - !Ref EnvironmentName
+                        - "-private-subnets-"
+                        -   Ref: "AWS::Region"
+
+    PublicSubnetCIDR1a:
+        Description: "Public subnet CIDR block in the Availability Zone a"
+        Value:
+          !Ref PublicSubnetCIDR1a
+        Export:
+            Name:
+                Fn::Join:
+                    - ""
+                    -   - !Ref EnvironmentName
+                        - "-public-subnet-cidr-"
+                        -   Ref: "AWS::Region"
+                        - "-a"
+
+    PublicSubnetCIDR1b:
+        Description: "Public subnet CIDR block in the Availability Zone b"
+        Value:
+          !Ref PublicSubnetCIDR1b
+        Export:
+            Name:
+                Fn::Join:
+                    - ""
+                    -   - !Ref EnvironmentName
+                        - "-public-subnet-cidr-"
+                        -   Ref: "AWS::Region"
+                        - "-b"

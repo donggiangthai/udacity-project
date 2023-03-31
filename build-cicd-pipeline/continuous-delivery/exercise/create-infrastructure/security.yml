@@ -1,0 +1,148 @@
+Description: >
+    ThaiDG
+    For creating the security to exercise Ansible playbook
+
+Parameters:
+    EnvironmentName:
+        Type: String
+        Description: "The environment name as a prefix"
+    AdministratorManagedPolicy:
+        Description: "The AWS Managed Policy for the EC2 Instance Role"
+        Type: String
+
+Resources:
+    EC2InstanceSecurityGroup:
+        Type: AWS::EC2::SecurityGroup
+        Properties:
+            GroupDescription: "The security group for the ec2 instances. Its allow ingress to the SSH port: 22 and unrestricted to egress"
+            VpcId:
+                Fn::ImportValue:
+                    Fn::Join:
+                        - ''
+                        -   - !Ref EnvironmentName
+                            - "-vpc-id-"
+                            -   Ref: "AWS::Region"
+            Tags:
+                -   Key: "Name"
+                    Value:
+                        Fn::Join:
+                            - ""
+                            -   - !Ref EnvironmentName
+                                - "-ec2-instance-security-group-"
+                                -   Ref: "AWS::Region"
+                -   Key: "Project"
+                    Value:
+                        Fn::Join:
+                            - ""
+                            -   - !Ref EnvironmentName
+                                - "-ansible-exercise"
+
+    EC2InstanceOutboundRule:
+        Type: AWS::EC2::SecurityGroupEgress
+        Properties:
+            GroupId:
+                Ref: "EC2InstanceSecurityGroup"
+            IpProtocol: "-1"
+            FromPort: -1
+            ToPort: -1
+            CidrIp: "0.0.0.0/0"
+            Description: "Allow all egress traffic by default"
+
+    EC2InstanceInboundRuleCustomPort:
+        Type: AWS::EC2::SecurityGroupIngress
+        Properties:
+            GroupId:
+                Ref: "EC2InstanceSecurityGroup"
+            IpProtocol: "tcp"
+            FromPort: 3000
+            ToPort: 3000
+            CidrIp: "0.0.0.0/0"
+            Description: "Allow HTTP"
+
+    EC2InstanceInboundRuleHTTP:
+        Type: AWS::EC2::SecurityGroupIngress
+        Properties:
+            GroupId:
+                Ref: "EC2InstanceSecurityGroup"
+            IpProtocol: "tcp"
+            FromPort: 80
+            ToPort: 80
+            CidrIp: "0.0.0.0/0"
+            Description: "Allow HTTP"
+
+    EC2InstanceInboundRuleHTTPS:
+        Type: AWS::EC2::SecurityGroupIngress
+        Properties:
+            GroupId:
+                Ref: "EC2InstanceSecurityGroup"
+            IpProtocol: "tcp"
+            FromPort: 443
+            ToPort: 443
+            CidrIp: "0.0.0.0/0"
+            Description: "Allow HTTPS"
+
+    EC2InstanceInboundRuleSSH:
+        Type: AWS::EC2::SecurityGroupIngress
+        Properties:
+            GroupId:
+                Ref: "EC2InstanceSecurityGroup"
+            IpProtocol: "tcp"
+            FromPort: 22
+            ToPort: 22
+            CidrIp: "0.0.0.0/0"
+            Description: "Allow SSH"
+
+    EC2InstanceRole:
+        Type: AWS::IAM::Role
+        Properties:
+            AssumeRolePolicyDocument:
+                Version: "2012-10-17"
+                Statement:
+                    -   Effect: "Allow"
+                        Principal:
+                            Service:
+                                - "ec2.amazonaws.com"
+                        Action:
+                            - "sts:AssumeRole"
+            Description: "The IAM role of second project that allow Administrator Access role"
+            ManagedPolicyArns:
+                - !Ref AdministratorManagedPolicy
+            Tags:
+                -   Key: "Name"
+                    Value:
+                        Fn::Join:
+                            - ""
+                            -   - !Ref EnvironmentName
+                                - "-ec2-instance-iam-role-"
+                                -   Ref: "AWS::Region"
+
+    EC2InstanceProfile:
+        Type: "AWS::IAM::InstanceProfile"
+        Properties:
+            Path: "/"
+            Roles:
+                -   Ref: "EC2InstanceRole"
+
+Outputs:
+    EC2InstanceProfileName:
+        Description: "EC2 instance profile name"
+        Value:
+            Ref: "EC2InstanceProfile"
+        Export:
+            Name:
+                Fn::Join:
+                    - ""
+                    -   - !Ref EnvironmentName
+                        - "-iam-instance-profile"
+
+    EC2InstanceSecurityGroupId:
+        Description: "EC2 instance security group id"
+        Value:
+            Ref: "EC2InstanceSecurityGroup"
+        Export:
+            Name:
+                Fn::Join:
+                    - ""
+                    -   - !Ref EnvironmentName
+                        - "-ec2-instance-sg-"
+                        -   Ref: "AWS::Region"

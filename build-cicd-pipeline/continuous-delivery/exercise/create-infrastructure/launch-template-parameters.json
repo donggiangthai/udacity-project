@@ -1,0 +1,19 @@
+[
+	{
+		"ParameterKey": "EnvironmentName",
+		"ParameterValue": "ThaiDG-Udacity-ci-cd-exercise"
+	},
+	{
+		"ParameterKey": "InstanceType",
+		"ParameterValue": "t2.micro"
+	},
+	{
+		"ParameterKey": "KeyPair",
+		"ParameterValue": "thaidg-ansible-key-pair"
+	},
+	{
+		"ParameterKey": "ImageId",
+		"ParameterValue": "thaidg-ami-ubuntu-22"
+	}
+
+]

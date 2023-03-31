@@ -35,6 +35,9 @@
                   <Item>
                     <option name="path" value="deploy-a-high-availability-web-app-using-cloudformation/bastion-host.yml" />
                   </Item>
+                  <Item>
+                    <option name="path" value="build-cicd-pipeline/continuous-delivery/exercise/create-infrastructure/ec2-instances.yml" />
+                  </Item>
                 </list>
               </option>
             </SchemaInfo>

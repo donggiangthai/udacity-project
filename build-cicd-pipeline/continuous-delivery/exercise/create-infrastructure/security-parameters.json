@@ -1,0 +1,10 @@
+[
+	{
+		"ParameterKey": "EnvironmentName",
+		"ParameterValue": "ThaiDG-Udacity-ci-cd-exercise"
+	},
+	{
+		"ParameterKey": "AdministratorManagedPolicy",
+		"ParameterValue": "arn:aws:iam::aws:policy/AdministratorAccess"
+	}
+]

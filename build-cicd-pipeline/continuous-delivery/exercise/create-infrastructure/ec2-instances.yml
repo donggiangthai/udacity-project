@@ -1,0 +1,58 @@
+Description: >
+    ThaiDG
+    For creating the EC2 instances to exercise Ansible playbook
+
+Parameters:
+    EnvironmentName:
+        Type: String
+        Description: "The environment name as a prefix"
+
+Resources:
+    EC2Instance1a:
+        Type: AWS::EC2::Instance
+        Properties:
+            NetworkInterfaces:
+                -   DeviceIndex: 0
+                    SubnetId:
+                        Fn::ImportValue:
+                            Fn::Join:
+                                - ''
+                                -   - !Ref EnvironmentName
+                                    - "-public-subnet-"
+                                    -   Ref: "AWS::Region"
+                                    - "-a"
+            LaunchTemplate:
+                LaunchTemplateId:
+                    Fn::ImportValue:
+                        Fn::Join:
+                            - ""
+                            -   - !Ref EnvironmentName
+                                - "-launch-template-id"
+                                -   Ref: "AWS::Region"
+                Version:
+                    Fn::ImportValue:
+                        Fn::Join:
+                            - ""
+                            -   - !Ref EnvironmentName
+                                - "-launch-template-version"
+                                -   Ref: "AWS::Region"
+            Tags:
+                -   Key: "Name"
+                    Value:
+                        Fn::Join:
+                            - ""
+                            -   - !Ref EnvironmentName
+                                - "-ec2-instance-"
+                                -   Fn::Select:
+                                        - 0
+                                        -   Fn::GetAZs:
+                                                Ref: "AWS::Region"
+
+Outputs:
+    EC2InstanceConnection1a:
+        Description: "The connection for the ec2 instance in the Availability Zone a"
+        Value:
+            Fn::Join:
+                - ""
+                -   - "ubuntu@"
+                    -   Fn::GetAtt: "EC2Instance1a.PublicIp"
