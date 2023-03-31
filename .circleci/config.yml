@@ -8,7 +8,7 @@ orbs:
 # Define a job to be invoked later in a workflow.
 # See: https://circleci.com/docs/configuration-reference/#jobs
 jobs:
-  create_infrastructure:
+  create_network:
     # Specify the execution environment. You can specify an image from Docker Hub or use one of our convenience images from CircleCI's Developer Hub.
     # See: https://circleci.com/docs/configuration-reference/#executor-job
     docker:
@@ -19,18 +19,139 @@ jobs:
       # This command will pull all of the files into a directory called project which can be found at ~/project.
       - checkout
       - run:
-          name: "Create Cloudformation Stack"
+          name: "Create Cloudformation NetWorking Stack"
           command: |
             aws cloudformation deploy \
-            --stack-name EC2Instance-${CIRCLE_WORKFLOW_ID:0:5} \
+            --stack-name NetWorking-${CIRCLE_WORKFLOW_ID:0:5} \
+            --template-file ~/project/build-cicd-pipeline/continuous-delivery/exercise/create-infrastructure/networking.yml \
+            --parameter-overrides file://~/project/build-cicd-pipeline/continuous-delivery/exercise/create-infrastructure/networking-parameters.json \
+            --no-fail-on-empty-changeset \
+            --region us-east-1
+
+  create_security:
+    # Specify the execution environment. You can specify an image from Docker Hub or use one of our convenience images from CircleCI's Developer Hub.
+    # See: https://circleci.com/docs/configuration-reference/#executor-job
+    docker:
+      - image: amazon/aws-cli
+    # Add steps to the job
+    # See: https://circleci.com/docs/configuration-reference/#steps
+    steps:
+      # This command will pull all of the files into a directory called project which can be found at ~/project.
+      - checkout
+      - run:
+          name: "Create Cloudformation Security Stack"
+          command: |
+            aws cloudformation deploy \
+            --stack-name Security-${CIRCLE_WORKFLOW_ID:0:5} \
+            --template-file ~/project/build-cicd-pipeline/continuous-delivery/exercise/create-infrastructure/security.yml \
+            --parameter-overrides file://~/project/build-cicd-pipeline/continuous-delivery/exercise/create-infrastructure/security-parameters.json \
+            --no-fail-on-empty-changeset \
+            --region us-east-1
+
+  create_launch_template:
+    # Specify the execution environment. You can specify an image from Docker Hub or use one of our convenience images from CircleCI's Developer Hub.
+    # See: https://circleci.com/docs/configuration-reference/#executor-job
+    docker:
+      - image: amazon/aws-cli
+    # Add steps to the job
+    # See: https://circleci.com/docs/configuration-reference/#steps
+    steps:
+      # This command will pull all of the files into a directory called project which can be found at ~/project.
+      - checkout
+      - run:
+          name: "Create Cloudformation Launch Template Stack"
+          command: |
+            aws cloudformation deploy \
+            --stack-name Launch-Template-${CIRCLE_WORKFLOW_ID:0:5} \
+            --template-file ~/project/build-cicd-pipeline/continuous-delivery/exercise/create-infrastructure/launch-template.yml \
+            --parameter-overrides file://~/project/build-cicd-pipeline/continuous-delivery/exercise/create-infrastructure/launch-template-parameters.json \
+            --no-fail-on-empty-changeset \
+            --region us-east-1
+
+  create_ec2_instances:
+    # Specify the execution environment. You can specify an image from Docker Hub or use one of our convenience images from CircleCI's Developer Hub.
+    # See: https://circleci.com/docs/configuration-reference/#executor-job
+    docker:
+      - image: amazon/aws-cli
+    # Add steps to the job
+    # See: https://circleci.com/docs/configuration-reference/#steps
+    steps:
+      # This command will pull all of the files into a directory called project which can be found at ~/project.
+      - checkout
+      - run:
+          name: "Create Cloudformation EC2 Instances Stack"
+          command: |
+            aws cloudformation deploy \
+            --stack-name EC2-Instances-${CIRCLE_WORKFLOW_ID:0:5} \
             --template-file ~/project/build-cicd-pipeline/continuous-delivery/exercise/create-infrastructure/ec2-instances.yml \
             --parameter-overrides file://~/project/build-cicd-pipeline/continuous-delivery/exercise/create-infrastructure/ec2-instances-parameters.json \
             --no-fail-on-empty-changeset \
             --region us-east-1
+
+  add_publicipaddress_to_inventory:
+    # Specify the execution environment. You can specify an image from Docker Hub or use one of our convenience images from CircleCI's Developer Hub.
+    # See: https://circleci.com/docs/configuration-reference/#executor-job
+    docker:
+      - image: amazon/aws-cli
+    environment:
+      INVENTORY_PATH: ~/project/build-cicd-pipeline/continuous-delivery/exercise/configuration-and-deployment/inventory
+      PROJECT_TAG: ThaiDG-Udacity-ci-cd-exercise-ansible-exercise
+    # Add steps to the job
+    # See: https://circleci.com/docs/configuration-reference/#steps
+    steps:
+      # This command will pull all of the files into a directory called project which can be found at ~/project.
+      - checkout
+      - run:
+          name: "Clean up the inventory file"
+          command: |
+            echo [all] > $INVENTORY_PATH
+      - run:
+          name: "Get EC2 Instances Public IP Address"
+          command: |
+            aws ec2 describe-instances \
+            --query 'Reservations[*].Instances[*].PublicIpAddress' \
+            --filters "Name=tag:Project,Values=$PROJECT_TAG" \
+            --output text >> $INVENTORY_PATH
+
+  # Exercise: Config and Deployment
+  configure_infrastructure: 
+    docker:
+      - image: python:3.10.10-alpine3.17
+    environment:
+      CONFIG_PATH: ~/project/build-cicd-pipeline/continuous-delivery/exercise/configuration-and-deployment
+    steps:
+      - checkout
+      - add_ssh_keys:
+          fingerprints: ["a7:3d:b9:55:f2:2f:f6:9a:53:c6:e8:3b:8b:41:7c:4f"] 
+      - run:
+          name: "Install Ansible"
+          command: |
+            apk add --update ansible
+      - run:
+          name: Run Playbook and Configure server
+          command: |
+            ansible-playbook \
+            -i $CONFIG_PATH/inventory \
+            $CONFIG_PATH/main.yml
 
 # Orchestrate jobs using workflows
 # See: https://circleci.com/docs/configuration-reference/#workflows
 workflows:
   create-infrastructure-workflow:
     jobs:
-      - create_infrastructure
+      - create_network
+      - create_security:
+          requires:
+            - "create_network"
+      - create_launch_template:
+          requires:
+            - "create_security"
+      - create_ec2_instances:
+          requires:
+            - "create_launch_template"
+      - add_publicipaddress_to_inventory:
+          requires:
+            - "create_ec2_instances"
+      - configure_infrastructure:
+          requires:
+            - "add_publicipaddress_to_inventory"

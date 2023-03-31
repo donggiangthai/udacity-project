@@ -1,0 +1,45 @@
+---
+- name: "Update apt packages"
+  become: true
+  apt:
+    update_cache: yes
+
+- name: "Upgrade apt packages"
+  become: true
+  apt:
+    upgrade: yes
+
+
+- name: "Remove dependencies that are no longer required"
+  become: true
+  apt:
+    autoremove: yes
+
+- name: "Install dependencies"
+  become: true
+  apt:
+    name: ["nodejs", "npm"]
+    state: "latest"
+    update_cache: yes
+
+- name: "Install pm2"
+  become: true
+  npm:
+    name: "pm2"
+    global: yes
+    production: yes
+    state: "present"
+
+- name: "Creates directory"
+  file:
+    path: "~/web"
+    state: "directory"
+
+- name: "Copy index.js"
+  copy:
+    src: "index.js"
+    dest: "~/web/index.js"
+
+- name: "Run the web server"
+  shell:
+    cmd: pm2 start ~/web/index.js --force
