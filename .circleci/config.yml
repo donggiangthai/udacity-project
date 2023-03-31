@@ -13,6 +13,8 @@ jobs:
     # See: https://circleci.com/docs/configuration-reference/#executor-job
     docker:
       - image: amazon/aws-cli
+    environment:
+      TEMPLATE_DIR: ~/project/build-cicd-pipeline/continuous-delivery/exercise/create-infrastructure
     # Add steps to the job
     # See: https://circleci.com/docs/configuration-reference/#steps
     steps:
@@ -23,8 +25,8 @@ jobs:
           command: |
             aws cloudformation deploy \
             --stack-name NetWorking-CircleCI \
-            --template-file ~/project/build-cicd-pipeline/continuous-delivery/exercise/create-infrastructure/networking.yml \
-            --parameter-overrides file://~/project/build-cicd-pipeline/continuous-delivery/exercise/create-infrastructure/networking-parameters.json \
+            --template-file $TEMPLATE_DIR/networking.yml \
+            --parameter-overrides file://$TEMPLATE_DIR/networking-parameters.json \
             --no-fail-on-empty-changeset \
             --region us-east-1
 
@@ -33,6 +35,8 @@ jobs:
     # See: https://circleci.com/docs/configuration-reference/#executor-job
     docker:
       - image: amazon/aws-cli
+    environment:
+      TEMPLATE_DIR: ~/project/build-cicd-pipeline/continuous-delivery/exercise/create-infrastructure
     # Add steps to the job
     # See: https://circleci.com/docs/configuration-reference/#steps
     steps:
@@ -43,8 +47,9 @@ jobs:
           command: |
             aws cloudformation deploy \
             --stack-name Security-CircleCI \
-            --template-file ~/project/build-cicd-pipeline/continuous-delivery/exercise/create-infrastructure/security.yml \
-            --parameter-overrides file://~/project/build-cicd-pipeline/continuous-delivery/exercise/create-infrastructure/security-parameters.json \
+            --template-file $TEMPLATE_DIR/security.yml \
+            --parameter-overrides file://$TEMPLATE_DIR/security-parameters.json \
+            --capabilities CAPABILITY_IAM CAPABILITY_NAMED_IAM \ 
             --no-fail-on-empty-changeset \
             --region us-east-1
 
@@ -53,6 +58,8 @@ jobs:
     # See: https://circleci.com/docs/configuration-reference/#executor-job
     docker:
       - image: amazon/aws-cli
+    environment:
+      TEMPLATE_DIR: ~/project/build-cicd-pipeline/continuous-delivery/exercise/create-infrastructure
     # Add steps to the job
     # See: https://circleci.com/docs/configuration-reference/#steps
     steps:
@@ -63,8 +70,8 @@ jobs:
           command: |
             aws cloudformation deploy \
             --stack-name Launch-Template-CircleCI \
-            --template-file ~/project/build-cicd-pipeline/continuous-delivery/exercise/create-infrastructure/launch-template.yml \
-            --parameter-overrides file://~/project/build-cicd-pipeline/continuous-delivery/exercise/create-infrastructure/launch-template-parameters.json \
+            --template-file $TEMPLATE_DIR/launch-template.yml \
+            --parameter-overrides file://$TEMPLATE_DIR/launch-template-parameters.json \
             --no-fail-on-empty-changeset \
             --region us-east-1
 
@@ -73,6 +80,8 @@ jobs:
     # See: https://circleci.com/docs/configuration-reference/#executor-job
     docker:
       - image: amazon/aws-cli
+    environment:
+      TEMPLATE_DIR: ~/project/build-cicd-pipeline/continuous-delivery/exercise/create-infrastructure
     # Add steps to the job
     # See: https://circleci.com/docs/configuration-reference/#steps
     steps:
@@ -83,8 +92,8 @@ jobs:
           command: |
             aws cloudformation deploy \
             --stack-name EC2-Instances-CircleCI \
-            --template-file ~/project/build-cicd-pipeline/continuous-delivery/exercise/create-infrastructure/ec2-instances.yml \
-            --parameter-overrides file://~/project/build-cicd-pipeline/continuous-delivery/exercise/create-infrastructure/ec2-instances-parameters.json \
+            --template-file $TEMPLATE_DIR/ec2-instances.yml \
+            --parameter-overrides file://$TEMPLATE_DIR/ec2-instances-parameters.json \
             --no-fail-on-empty-changeset \
             --region us-east-1
 
