@@ -40,6 +40,9 @@ commands:
       - run:
           name: "Deploy << parameters.stack_name >> stack"
           command: |
+            echo << parameters.stack_name >>
+            echo << parameters.template_file >>
+            echo << parameters.parameter_overrides >>
             aws cloudformation deploy \
             --stack-name << parameters.stack_name >> \
             --template-file << parameters.template_file >> \
