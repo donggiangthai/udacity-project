@@ -1,0 +1,204 @@
+# Use the latest 2.1 version of CircleCI pipeline process engine.
+# See: https://circleci.com/docs/configuration-reference
+version: 2.1
+
+orbs:
+  aws-cli: circleci/aws-cli@3.1.4
+
+commands:
+  # Exercise - Rollback
+  destroy_environment:
+    parameters:
+      stack_name:
+        type: string
+    steps:
+      - run:
+          name: Destroy environment
+          when: "on_fail"
+          command: |
+            echo << parameters.stack_name >>
+            aws cloudformation delete-stack --stack-name << parameters.stack_name >>
+            exit 1
+
+# Define a job to be invoked later in a workflow.
+# See: https://circleci.com/docs/configuration-reference/#jobs
+jobs:
+  create_network:
+    executor: aws-cli/default
+    environment:
+      TEMPLATE_DIR: ~/project/build-cicd-pipeline/continuous-delivery/exercise/create-infrastructure
+    # Add steps to the job
+    # See: https://circleci.com/docs/configuration-reference/#steps
+    steps:
+      # This command will pull all of the files into a directory called project which can be found at ~/project.
+      - checkout
+      - aws-cli/setup
+      - run:
+          name: "Create Cloudformation NetWorking Stack"
+          command: |
+            aws cloudformation deploy \
+            --stack-name NetWorking-CircleCI \
+            --template-file $TEMPLATE_DIR/networking.yml \
+            --parameter-overrides file://$TEMPLATE_DIR/networking-parameters.json \
+            --no-fail-on-empty-changeset \
+            --region us-east-1
+
+  create_security:
+    executor: aws-cli/default
+    environment:
+      TEMPLATE_DIR: ~/project/build-cicd-pipeline/continuous-delivery/exercise/create-infrastructure
+    # Add steps to the job
+    # See: https://circleci.com/docs/configuration-reference/#steps
+    steps:
+      # This command will pull all of the files into a directory called project which can be found at ~/project.
+      - checkout
+      - aws-cli/setup
+      - run:
+          name: "Create Cloudformation Security Stack"
+          command: |
+            aws cloudformation deploy \
+            --stack-name Security-CircleCI \
+            --template-file $TEMPLATE_DIR/security.yml \
+            --parameter-overrides file://$TEMPLATE_DIR/security-parameters.json \
+            --no-fail-on-empty-changeset \
+            --region us-east-1 \
+            --capabilities "CAPABILITY_IAM" "CAPABILITY_NAMED_IAM"
+
+  create_launch_template:
+    executor: aws-cli/default
+    environment:
+      TEMPLATE_DIR: ~/project/build-cicd-pipeline/continuous-delivery/exercise/create-infrastructure
+    # Add steps to the job
+    # See: https://circleci.com/docs/configuration-reference/#steps
+    steps:
+      # This command will pull all of the files into a directory called project which can be found at ~/project.
+      - checkout
+      - aws-cli/setup
+      - run:
+          name: "Create Cloudformation Launch Template Stack"
+          command: |
+            aws cloudformation deploy \
+            --stack-name Launch-Template-CircleCI \
+            --template-file $TEMPLATE_DIR/launch-template.yml \
+            --parameter-overrides file://$TEMPLATE_DIR/launch-template-parameters.json \
+            --no-fail-on-empty-changeset \
+            --region us-east-1
+
+  create_ec2_instances:
+    executor: aws-cli/default
+    environment:
+      TEMPLATE_DIR: ~/project/build-cicd-pipeline/continuous-delivery/exercise/create-infrastructure
+    # Add steps to the job
+    # See: https://circleci.com/docs/configuration-reference/#steps
+    steps:
+      # This command will pull all of the files into a directory called project which can be found at ~/project.
+      - checkout
+      - aws-cli/setup
+      - run:
+          name: "Create Cloudformation EC2 Instances Stack"
+          command: |
+            aws cloudformation deploy \
+            --stack-name EC2-Instances-${CIRCLE_WORKFLOW_ID} \
+            --template-file $TEMPLATE_DIR/ec2-instances.yml \
+            --parameter-overrides file://$TEMPLATE_DIR/ec2-instances-parameters.json \
+            --no-fail-on-empty-changeset \
+            --region us-east-1
+
+  add_publicipaddress_to_inventory:
+    executor: aws-cli/default
+    environment:
+      PROJECT_TAG: ThaiDG-Udacity-ci-cd-exercise-ansible-exercise
+    # Add steps to the job
+    # See: https://circleci.com/docs/configuration-reference/#steps
+    steps:
+      # This command will pull all of the files into a directory called project which can be found at ~/project.
+      - checkout
+      - aws-cli/setup
+      - run:
+          name: "Get EC2 Instances Public IP Address"
+          command: |
+            cd ~/project/build-cicd-pipeline/continuous-delivery/exercise/configuration-and-deployment/
+            aws ec2 describe-instances \
+            --query 'Reservations[*].Instances[*].PublicIpAddress' \
+            --filters "Name=tag:Project,Values=$PROJECT_TAG" \
+            --output text >> inventory
+      - run:
+          name: "Move inventory file into workspace"
+          command: |
+            cd ~/project/build-cicd-pipeline/continuous-delivery/exercise/configuration-and-deployment/
+            mv inventory ~/inventory
+      - persist_to_workspace:
+          root: ~/
+          paths:
+            - "inventory"
+
+  configure_infrastructure: 
+    docker:
+      - image: python:3.10.10-alpine3.17
+    environment:
+      CONFIG_DIR: ~/project/build-cicd-pipeline/continuous-delivery/exercise/configuration-and-deployment
+    steps:
+      - checkout
+      - add_ssh_keys:
+          fingerprints: ["a7:3d:b9:55:f2:2f:f6:9a:53:c6:e8:3b:8b:41:7c:4f"] 
+      - run:
+          name: "Install Ansible"
+          command: |
+            apk add --update ansible
+      - attach_workspace:
+          at: ~/
+      - run:
+          name: Run Playbook and Configure server
+          command: |
+            cd ~/project/build-cicd-pipeline/continuous-delivery/exercise/configuration-and-deployment/
+            ansible-playbook -i ~/inventory main.yml
+
+  smoke_test:
+    executor: aws-cli/default
+    steps:
+      - checkout
+      - aws-cli/setup
+      - attach_workspace:
+          at: ~/
+      - run:
+          name: "Smoke test"
+          command: |
+            while read line; do
+              if [[ "$line" == "[all]" ]]; then
+                continue
+              else
+                if curl -s --head http://$line:3000; then
+                  echo "Tess pass"
+                else
+                  echo "Tess failed"
+                  exit 1
+                fi
+              fi
+            done < ~/inventory
+      - destroy_environment:
+          stack_name: EC2-Instances-$CIRCLE_WORKFLOW_ID
+
+# Orchestrate jobs using workflows
+# See: https://circleci.com/docs/configuration-reference/#workflows
+workflows:
+  create-infrastructure-workflow:
+    jobs:
+      - create_network
+      - create_security:
+          requires:
+            - "create_network"
+      - create_launch_template:
+          requires:
+            - "create_security"
+      - create_ec2_instances:
+          requires:
+            - "create_launch_template"
+      - add_publicipaddress_to_inventory:
+          requires:
+            - "create_ec2_instances"
+      - configure_infrastructure:
+          requires:
+            - "add_publicipaddress_to_inventory"
+      - smoke_test:
+          requires:
+            - "configure_infrastructure"
