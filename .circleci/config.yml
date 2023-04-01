@@ -92,6 +92,7 @@ jobs:
   add_publicipaddress_to_inventory:
     executor: aws-cli/default
     environment:
+      INVENTORY_DIR: ~/project/build-cicd-pipeline/continuous-delivery/exercise/configuration-and-deployment
       PROJECT_TAG: ThaiDG-Udacity-ci-cd-exercise-ansible-exercise
     # Add steps to the job
     # See: https://circleci.com/docs/configuration-reference/#steps
@@ -102,11 +103,11 @@ jobs:
       - run:
           name: "Get EC2 Instances Public IP Address"
           command: |
-            cd ~/project/build-cicd-pipeline/continuous-delivery/exercise/configuration-and-deployment/
+            cd $INVENTORY_DIR/
             aws ec2 describe-instances \
             --query 'Reservations[*].Instances[*].PublicIpAddress' \
             --filters "Name=tag:Project,Values=$PROJECT_TAG" \
-            --output text >> inventory
+            --output text >> $INVENTORY_DIR/inventory
       - run:
           name: "Move inventory file into workspace"
           command: |
