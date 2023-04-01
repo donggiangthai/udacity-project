@@ -1,0 +1,10 @@
+[
+	{
+		"ParameterKey": "EnvironmentName",
+		"ParameterValue": "ThaiDG-Udacity-ci-cd-exercise"
+	},
+	{
+		"ParameterKey": "S3StaticHost",
+		"ParameterValue": "http://thaidg-continuous-delivery-987941172576-us-east-1.s3-website-us-east-1.amazonaws.com"
+	}
+]

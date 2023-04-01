@@ -1,0 +1,54 @@
+Parameters:
+    EnvironmentName:
+        Type: String
+        Description: "The environment name as a prefix"
+        Default: "ThaiDG-Udacity-ci-cd-exercise"
+    S3StaticHost:
+        Type: String
+        Description: "S3 static website endpoint"
+        Default: "http://thaidg-continuous-delivery-987941172576-us-east-1.s3-website-us-east-1.amazonaws.com"
+Resources:
+    CustomCachePolicy:
+        Type: AWS::CloudFront::CachePolicy
+        Properties:
+            CachePolicyConfig:
+                Comment: "Custom cache policy"
+                DefaultTTL: 600
+                MaxTTL: 3600
+                MinTTL: 60
+                Name: "CustomPolicy"
+                ParametersInCacheKeyAndForwardedToOrigin:
+                    CookiesConfig:
+                        CookieBehavior: "all"
+                    EnableAcceptEncodingBrotli: true
+                    EnableAcceptEncodingGzip: true
+                    HeadersConfig:
+                        HeaderBehavior: "whitelist"
+                    QueryStringsConfig:
+                        QueryStringBehavior: "all"
+    WebpageCDN:
+        Type: AWS::CloudFront::Distribution
+        Properties:
+            DistributionConfig:
+                Origins:
+                    -   DomainName: !Ref S3StaticHost
+                        CustomOriginConfig:
+                            OriginProtocolPolicy: "match-viewer"
+                        Id: webpage
+                Enabled: True
+                DefaultRootObject: "index.html"
+                DefaultCacheBehavior:
+                    AllowedMethods:
+                        - "GET"
+                        - "HEAD"
+                    CachePolicyId:
+                        Ref: "CustomCachePolicy"
+                    TargetOriginId: webpage
+                    ViewerProtocolPolicy: allow-all
+            Tags:
+                -   Key: "Name"
+                    Value:
+                        Fn::Join:
+                            - ""
+                            -   - !Ref EnvironmentName
+                                - "-cloud-front-distribution"

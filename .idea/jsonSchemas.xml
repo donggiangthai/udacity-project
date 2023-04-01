@@ -41,6 +41,12 @@
                   <Item>
                     <option name="path" value="build-cicd-pipeline/continuous-delivery/exercise/create-infrastructure/security.yml" />
                   </Item>
+                  <Item>
+                    <option name="path" value="build-cicd-pipeline/continuous-delivery/exercise/create-infrastructure/cloudfront.yml" />
+                  </Item>
+                  <Item>
+                    <option name="path" value="build-cicd-pipeline/continuous-delivery/exercise/create-infrastructure/bucket.yml" />
+                  </Item>
                 </list>
               </option>
             </SchemaInfo>
