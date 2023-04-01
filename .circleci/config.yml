@@ -153,10 +153,10 @@ jobs:
             ansible-playbook -i ~/inventory main.yml
 
   smoke_test:
-    docker:
-      - image: alpine:latest
+    executor: aws-cli/default
     steps:
       - checkout
+      - aws-cli/setup
       - run:
           name: "Smoke test"
           command: |
