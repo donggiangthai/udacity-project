@@ -158,10 +158,28 @@ jobs:
     steps:
       - checkout
       - aws-cli/setup
+      - attach_workspace:
+          at: ~/
       - run:
           name: "Smoke test"
           command: |
-            echo "Smoke test"
+            filename='~/inventory'
+            n=1
+            while read line; do
+              # reading each line
+              echo "Line No. $n : $line"
+              n=$((n+1))
+              if [[ $line -eq [all] ]]; then
+                continue
+              else
+                if curl -s --head http://$line:3000; then
+                  echo "Tess pass"
+                else
+                  echo "Tess failed"
+                  exit 1
+                fi
+              fi
+            done < $filename
       - destroy_environment:
           stack_name: EC2-Instances-$CIRCLE_WORKFLOW_ID
 
@@ -188,4 +206,4 @@ workflows:
             - "add_publicipaddress_to_inventory"
       - smoke_test:
           requires:
-            - "create_ec2_instances"
+            - "configure_infrastructure"
