@@ -40,9 +40,6 @@ commands:
       - run:
           name: "Deploy << parameters.stack_name >> stack"
           command: |
-            echo << parameters.stack_name >>
-            echo << parameters.template_file >>
-            echo << parameters.parameter_overrides >>
             aws cloudformation deploy \
             --stack-name << parameters.stack_name >> \
             --template-file << parameters.template_file >> \
@@ -216,7 +213,7 @@ jobs:
       - deploy_stack:
           stack_name: S3Bucket-${CIRCLE_WORKFLOW_ID:0:7}
           template_file: $TEMPLATE_DIR/bucket.yml
-          parameter_overrides: MyBucketName=thaidg-bucket-${CIRCLE_WORKFLOW_ID:0:7} CIRCLE_WORKFLOW_ID=${CIRCLE_WORKFLOW_ID:0:7}
+          parameter_overrides: MyBucketName=thaidg-bucket-${CIRCLE_WORKFLOW_ID:0:7} CircleWorkflowId=${CIRCLE_WORKFLOW_ID:0:7}
       # - run:
       #     name: "Create s3 bucket"
       #     command: |
@@ -240,7 +237,7 @@ jobs:
           name: "Fetch and save the circleCI workflow id responsible for the last release."
           command: |
             aws cloudformation \
-            list-exports --query "Exports[?Name==\`CIRCLE_WORKFLOW_ID\`].Value" \
+            list-exports --query "Exports[?Name==\`CircleWorkflowId\`].Value" \
             --no-paginate --output text > ~/circleworkflowid
       - run:
           name: "Fetch and save the static host"

@@ -7,7 +7,7 @@ Parameters:
         Description: "Existing Bucket name"
         Type: String
         Default: "thaidg-continuous-delivery-987941172576-us-east-1"
-    CIRCLE_WORKFLOW_ID:
+    CircleWorkflowId:
         Description: "CircleCI workflow id"
         Type: String
 Resources:
@@ -19,7 +19,7 @@ Resources:
                     - ""
                     - - !Ref MyBucketName
                       - "-"
-                      - !Ref CIRCLE_WORKFLOW_ID
+                      - !Ref CircleWorkflowId
             AccessControl: "PublicRead"
             WebsiteConfiguration:
                 IndexDocument: index.html
@@ -70,8 +70,8 @@ Outputs:
         Export:
             Name: "ExistBucketName"
 
-    CIRCLE_WORKFLOW_ID:
+    CircleWorkflowId:
         Description: "CircleCI workflow id"
-        Value: !Ref CIRCLE_WORKFLOW_ID
+        Value: !Ref CircleWorkflowId
         Export:
-            Name: "CIRCLE_WORKFLOW_ID"
+            Name: "CircleWorkflowId"
