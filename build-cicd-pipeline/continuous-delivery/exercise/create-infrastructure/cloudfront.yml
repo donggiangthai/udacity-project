@@ -6,7 +6,7 @@ Parameters:
     S3StaticHost:
         Type: String
         Description: "S3 static website endpoint"
-        Default: "http://thaidg-continuous-delivery-987941172576-us-east-1.s3-website-us-east-1.amazonaws.com"
+        Default: "thaidg-continuous-delivery-987941172576-us-east-1.s3-website-us-east-1.amazonaws.com"
 Resources:
     CustomCachePolicy:
         Type: AWS::CloudFront::CachePolicy
@@ -23,7 +23,7 @@ Resources:
                     EnableAcceptEncodingBrotli: true
                     EnableAcceptEncodingGzip: true
                     HeadersConfig:
-                        HeaderBehavior: "whitelist"
+                        HeaderBehavior: "none"
                     QueryStringsConfig:
                         QueryStringBehavior: "all"
     WebpageCDN:
@@ -52,3 +52,11 @@ Resources:
                             - ""
                             -   - !Ref EnvironmentName
                                 - "-cloud-front-distribution"
+
+Outputs:
+    DomainName:
+        Description: "Cloud Front domain name"
+        Value:
+            Fn::GetAtt:
+                - WebpageCDN
+                - DomainName
