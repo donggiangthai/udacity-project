@@ -7,11 +7,19 @@ Parameters:
         Description: "Existing Bucket name"
         Type: String
         Default: "thaidg-continuous-delivery-987941172576-us-east-1"
+    CIRCLE_WORKFLOW_ID:
+        Description: "CircleCI workflow id"
+        Type: String
 Resources:
     WebsiteBucket:
         Type: AWS::S3::Bucket
         Properties:
-            BucketName: !Ref MyBucketName
+            BucketName:
+                Fn::Join:
+                    - ""
+                    - - !Ref MyBucketName
+                      - "-"
+                      - !Ref CIRCLE_WORKFLOW_ID
             AccessControl: "PublicRead"
             WebsiteConfiguration:
                 IndexDocument: index.html
@@ -61,3 +69,9 @@ Outputs:
         Value: !Ref ExistBucketName
         Export:
             Name: "ExistBucketName"
+
+    CIRCLE_WORKFLOW_ID:
+        Description: "CircleCI workflow id"
+        Value: !Ref CIRCLE_WORKFLOW_ID
+        Export:
+            Name: "CIRCLE_WORKFLOW_ID"

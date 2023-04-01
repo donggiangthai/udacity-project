@@ -19,6 +19,15 @@ commands:
             echo << parameters.stack_name >>
             aws cloudformation delete-stack --stack-name << parameters.stack_name >>
             exit 1
+  delete_stack:
+    parameters:
+      stack_name:
+        type: string
+    steps:
+      - run:
+          name: "Delete << parameters.stack_name >> stack"
+          command: |
+            aws cloudformation delete-stack --stack-name << parameters.stack_name >>
 
 # Define a job to be invoked later in a workflow.
 # See: https://circleci.com/docs/configuration-reference/#jobs
@@ -188,8 +197,8 @@ jobs:
           command: |
             aws cloudformation deploy \
             --template-file $TEMPLATE_DIR/bucket.yml \
-            --stack-name S3Bucket \
-            --parameter-overrides MyBucketName="thaidg-bucket-${CIRCLE_WORKFLOW_ID:0:7}"
+            --stack-name S3Bucket-${CIRCLE_WORKFLOW_ID:0:7} \
+            --parameter-overrides MyBucketName="thaidg-bucket-${CIRCLE_WORKFLOW_ID:0:7} CIRCLE_WORKFLOW_ID=${CIRCLE_WORKFLOW_ID:0:7}"
       - run:
           name: "Copy file to s3"
           command: |
@@ -197,17 +206,17 @@ jobs:
             aws s3 sync . s3://thaidg-bucket-${CIRCLE_WORKFLOW_ID:0:7} --delete
 
   # Fetch and save the pipeline ID (bucket ID) responsible for the last release.
-  get_last_bucket_name:
+  get_last_bucket_info:
     executor: aws-cli/default
     steps:
       - checkout
       - aws-cli/setup
       - run:
-          name: "Fetch and save the old bucket name responsible for the last release."
+          name: "Fetch and save the circleCI workflow id responsible for the last release."
           command: |
             aws cloudformation \
-            list-exports --query "Exports[?Name==\`ExistBucketName\`].Value" \
-            --no-paginate --output text > ~/existbucketname
+            list-exports --query "Exports[?Name==\`CIRCLE_WORKFLOW_ID\`].Value" \
+            --no-paginate --output text > ~/circleworkflowid
       - run:
           name: "Fetch and save the static host"
           command: |
@@ -220,7 +229,7 @@ jobs:
       - persist_to_workspace:
           root: ~/
           paths: 
-            - existbucketname
+            - circleworkflowid
             - websiteurl
 
   promote_to_production:
@@ -236,7 +245,6 @@ jobs:
           name: "Create or update Cloud Front distribution"
           command: |
             export static_host=$(cat ~/websiteurl)
-            echo $static_host
             aws cloudformation deploy \
             --template-file $TEMPLATE_DIR/cloudfront.yml \
             --stack-name production-distro \
@@ -253,9 +261,11 @@ jobs:
       - run:
           name: "Destroy the previous S3 bucket object" 
           command: |
-            export exist_bucket_name=$(cat ~/existbucketname)
-            s3_uri="s3://$exist_bucket_name"
+            export circle_workflow_id=$(cat ~/circleworkflowid)
+            s3_uri="s3://thaidg-bucket-$circle_workflow_id"
             aws s3 rm $s3_uri --recursive
+      - delete_stack:
+          stack_name: S3Bucket-$circle_workflow_id
 
 # Orchestrate jobs using workflows
 # See: https://circleci.com/docs/configuration-reference/#workflows
