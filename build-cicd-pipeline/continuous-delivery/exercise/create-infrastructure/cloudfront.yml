@@ -60,3 +60,5 @@ Outputs:
             Fn::GetAtt:
                 - WebpageCDN
                 - DomainName
+        Export:
+            Name: "DomainName"

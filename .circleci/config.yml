@@ -135,8 +135,6 @@ jobs:
   configure_infrastructure: 
     docker:
       - image: python:3.10.10-alpine3.17
-    environment:
-      CONFIG_DIR: ~/project/build-cicd-pipeline/continuous-delivery/exercise/configuration-and-deployment
     steps:
       - checkout
       - add_ssh_keys:
@@ -177,28 +175,118 @@ jobs:
             done < ~/inventory
       - destroy_environment:
           stack_name: EC2-Instances-$CIRCLE_WORKFLOW_ID
+  
+  create_and_deploy_front_end:
+    executor: aws-cli/default
+    environment:
+      TEMPLATE_DIR: ~/project/build-cicd-pipeline/continuous-delivery/exercise/create-infrastructure
+    steps:
+      - checkout
+      - aws-cli/setup
+      - run:
+          name: "Create s3 bucket"
+          command: |
+            aws cloudformation deploy \
+            --template-file $TEMPLATE_DIR/bucket.yml \
+            --stack-name S3Bucket \
+            --parameter-overrides MyBucketName="thaidg-bucket-${CIRCLE_WORKFLOW_ID:0:7}"
+      - run:
+          name: "Copy file to s3"
+          command: |
+            cd ~/project/build-cicd-pipeline/continuous-delivery/exercise/promote-to-production/
+            aws s3 sync . s3://thaidg-bucket-${CIRCLE_WORKFLOW_ID:0:7} --delete
+
+  # Fetch and save the pipeline ID (bucket ID) responsible for the last release.
+  get_last_bucket_name:
+    executor: aws-cli/default
+    steps:
+      - checkout
+      - aws-cli/setup
+      - run:
+          name: "Fetch and save the old bucket name responsible for the last release."
+          command: |
+            aws cloudformation \
+            list-exports --query "Exports[?Name==\`ExistBucketName\`].Value" \
+            --no-paginate --output text > ~/existbucketname
+      - run:
+          name: "Fetch and save the static host"
+          command: |
+            host=$(aws cloudformation list-exports \
+            --query "Exports[?Name==\`WebsiteURL\`].Value" \
+            --no-paginate --output text)
+            # Remove prefix ending in "//"
+            static_host=${host#*//}
+            echo static_host > ~/websiteurl
+      - persist_to_workspace:
+          root: ~/
+          paths: 
+            - existbucketname
+            - websiteurl
+
+  promote_to_production:
+    executor: aws-cli/default
+    environment:
+      TEMPLATE_DIR: ~/project/build-cicd-pipeline/continuous-delivery/exercise/create-infrastructure
+    steps:
+      - checkout
+      - aws-cli/setup
+      - attach_workspace:
+          at: ~/
+      - run:
+          name: "Create or update Cloud Front distribution"
+          command: |
+            export static_host=$(cat ~/websiteurl)
+            aws cloudformation deploy \
+            --template-file $TEMPLATE_DIR/cloudfront.yml \
+            --stack-name production-distro \
+            --parameter-overrides S3StaticHost=$static_host
+
+  # Destroy the previous production version's S3 bucket and CloudFormation stack. 
+  clean_up_old_front_end:
+    executor: aws-cli/default
+    steps:
+      - checkout
+      - aws-cli/setup
+      - attach_workspace:
+          at: ~/
+      - run:
+          name: "Destroy the previous S3 bucket object" 
+          command: |
+            export exist_bucket_name=$(cat ~/existbucketname)
+            s3_uri="s3://$exist_bucket_name"
+            aws s3 rm $s3_uri --recursive
 
 # Orchestrate jobs using workflows
 # See: https://circleci.com/docs/configuration-reference/#workflows
 workflows:
-  create-infrastructure-workflow:
+  deploy-front-end-workflow:
     jobs:
-      - create_network
-      - create_security:
+      # - create_network
+      # - create_security:
+      #     requires:
+      #       - "create_network"
+      # - create_launch_template:
+      #     requires:
+      #       - "create_security"
+      # - create_ec2_instances:
+      #     requires:
+      #       - "create_launch_template"
+      # - add_publicipaddress_to_inventory:
+      #     requires:
+      #       - "create_ec2_instances"
+      # - configure_infrastructure:
+      #     requires:
+      #       - "add_publicipaddress_to_inventory"
+      # - smoke_test:
+      #     requires:
+      #       - "configure_infrastructure"
+      - create_and_deploy_front_end
+      - get_last_bucket_name:
           requires:
-            - "create_network"
-      - create_launch_template:
+            - "create_and_deploy_front_end"
+      - promote_to_production:
           requires:
-            - "create_security"
-      - create_ec2_instances:
+            - "get_last_bucket_name"
+      - clean_up_old_front_end:
           requires:
-            - "create_launch_template"
-      - add_publicipaddress_to_inventory:
-          requires:
-            - "create_ec2_instances"
-      - configure_infrastructure:
-          requires:
-            - "add_publicipaddress_to_inventory"
-      - smoke_test:
-          requires:
-            - "configure_infrastructure"
+            - "promote_to_production"
