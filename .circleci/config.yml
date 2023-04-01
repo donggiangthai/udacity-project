@@ -211,9 +211,9 @@ jobs:
       - checkout
       - aws-cli/setup
       - deploy_stack:
-          stack_name: "S3Bucket-${CIRCLE_WORKFLOW_ID:0:7}"
-          template_file: "$TEMPLATE_DIR/bucket.yml"
-          parameter_overrides: "MyBucketName=thaidg-bucket-${CIRCLE_WORKFLOW_ID:0:7} CIRCLE_WORKFLOW_ID=${CIRCLE_WORKFLOW_ID:0:7}"
+          stack_name: S3Bucket-${CIRCLE_WORKFLOW_ID:0:7}
+          template_file: $TEMPLATE_DIR/bucket.yml
+          parameter_overrides: MyBucketName=thaidg-bucket-${CIRCLE_WORKFLOW_ID:0:7} CIRCLE_WORKFLOW_ID=${CIRCLE_WORKFLOW_ID:0:7}
       # - run:
       #     name: "Create s3 bucket"
       #     command: |
