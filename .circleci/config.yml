@@ -216,7 +216,7 @@ jobs:
             --no-paginate --output text)
             # Remove prefix ending in "//"
             static_host=${host#*//}
-            echo static_host > ~/websiteurl
+            echo $static_host > ~/websiteurl
       - persist_to_workspace:
           root: ~/
           paths: 
