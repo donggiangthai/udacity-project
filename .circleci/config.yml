@@ -5,6 +5,19 @@ version: 2.1
 orbs:
   aws-cli: circleci/aws-cli@3.1.4
 
+commands:
+  # Exercise - Rollback
+  destroy_environment:
+    parameters:
+      stack_name:
+        type: string
+    steps:
+      - run:
+          name: Destroy environment
+          when: on_fail
+          command: |
+            aws cloudformation delete-stack --stack-name parameters.stack_name
+
 # Define a job to be invoked later in a workflow.
 # See: https://circleci.com/docs/configuration-reference/#jobs
 jobs:
@@ -83,7 +96,7 @@ jobs:
           name: "Create Cloudformation EC2 Instances Stack"
           command: |
             aws cloudformation deploy \
-            --stack-name EC2-Instances-CircleCI \
+            --stack-name EC2-Instances-${CIRCLE_WORKFLOW_ID} \
             --template-file $TEMPLATE_DIR/ec2-instances.yml \
             --parameter-overrides file://$TEMPLATE_DIR/ec2-instances-parameters.json \
             --no-fail-on-empty-changeset \
@@ -138,6 +151,19 @@ jobs:
             cd ~/project/build-cicd-pipeline/continuous-delivery/exercise/configuration-and-deployment/
             ansible-playbook -i ~/inventory main.yml
 
+  smoke_test:
+    docker:
+      - image: alpine:latest
+    steps:
+      - checkout
+      - run:
+          name: "Smoke test"
+          command: |
+            return 1
+      - destroy_environment:
+          stack_name: "EC2-Instances-${CIRCLE_WORKFLOW_ID}"
+          when: "on_fail"
+
 # Orchestrate jobs using workflows
 # See: https://circleci.com/docs/configuration-reference/#workflows
 workflows:
@@ -153,9 +179,12 @@ workflows:
       - create_ec2_instances:
           requires:
             - "create_launch_template"
-      - add_publicipaddress_to_inventory:
+      # - add_publicipaddress_to_inventory:
+      #     requires:
+      #       - "create_ec2_instances"
+      # - configure_infrastructure:
+      #     requires:
+      #       - "add_publicipaddress_to_inventory"
+      - smoke_test:
           requires:
             - "create_ec2_instances"
-      - configure_infrastructure:
-          requires:
-            - "add_publicipaddress_to_inventory"
