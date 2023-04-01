@@ -1,8 +1,12 @@
 Parameters:
     # New Bucket name
     MyBucketName:
+        Description: "The Bucket name"
+        Type: String
+    ExistBucketName:
         Description: "Existing Bucket name"
         Type: String
+        Default: "thaidg-continuous-delivery-987941172576-us-east-1"
 Resources:
     WebsiteBucket:
         Type: AWS::S3::Bucket
@@ -42,8 +46,18 @@ Outputs:
             Fn::GetAtt:
                 - WebsiteBucket
                 - WebsiteURL
+        Export:
+            Name: "WebsiteURL"
 
-    BucketName:
+    WebsiteBucketName:
         Description: "S3 bucket name"
         Value:
             Ref: "WebsiteBucket"
+        Export:
+            Name: "WebsiteBucketName"
+
+    ExistBucketName:
+        Description: "Existing S3 name"
+        Value: !Ref ExistBucketName
+        Export:
+            Name: "ExistBucketName"
