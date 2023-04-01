@@ -163,12 +163,7 @@ jobs:
       - run:
           name: "Smoke test"
           command: |
-            filename='~/inventory'
-            n=1
             while read line; do
-              # reading each line
-              echo "Line No. $n : $line"
-              n=$((n+1))
               if [[ $line -eq [all] ]]; then
                 continue
               else
@@ -179,7 +174,7 @@ jobs:
                   exit 1
                 fi
               fi
-            done < $filename
+            done < ~/inventory
       - destroy_environment:
           stack_name: EC2-Instances-$CIRCLE_WORKFLOW_ID
 
