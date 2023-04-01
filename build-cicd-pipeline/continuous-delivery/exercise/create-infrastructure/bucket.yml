@@ -42,3 +42,8 @@ Outputs:
             Fn::GetAtt:
                 - WebsiteBucket
                 - WebsiteURL
+
+    BucketName:
+        Description: "S3 bucket name"
+        Value:
+            Ref: "WebsiteBucket"
