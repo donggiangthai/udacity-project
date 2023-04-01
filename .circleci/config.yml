@@ -13,7 +13,7 @@ jobs:
       - run: 
           name: "Install cUrl"
           command: |
-            "apk add --update curl"
+            apk add --update curl
       - run:
           name: smoke test
           command: |
@@ -30,21 +30,6 @@ jobs:
 # Orchestrate jobs using workflows
 # See: https://circleci.com/docs/configuration-reference/#workflows
 workflows:
-  create-infrastructure-workflow:
+  smoke-test-workflow:
     jobs:
-      - create_network
-      - create_security:
-          requires:
-            - "create_network"
-      - create_launch_template:
-          requires:
-            - "create_security"
-      - create_ec2_instances:
-          requires:
-            - "create_launch_template"
-      - add_publicipaddress_to_inventory:
-          requires:
-            - "create_ec2_instances"
-      - configure_infrastructure:
-          requires:
-            - "add_publicipaddress_to_inventory"
+      - smoke_test
