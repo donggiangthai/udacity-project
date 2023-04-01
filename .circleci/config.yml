@@ -236,6 +236,7 @@ jobs:
           name: "Create or update Cloud Front distribution"
           command: |
             export static_host=$(cat ~/websiteurl)
+            echo $static_host
             aws cloudformation deploy \
             --template-file $TEMPLATE_DIR/cloudfront.yml \
             --stack-name production-distro \
