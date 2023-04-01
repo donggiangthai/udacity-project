@@ -161,7 +161,7 @@ jobs:
       - run:
           name: "Smoke test"
           command: |
-            exit 1
+            echo "Smoke test"
       - destroy_environment:
           stack_name: EC2-Instances-$CIRCLE_WORKFLOW_ID
 
@@ -180,12 +180,12 @@ workflows:
       - create_ec2_instances:
           requires:
             - "create_launch_template"
-      # - add_publicipaddress_to_inventory:
-      #     requires:
-      #       - "create_ec2_instances"
-      # - configure_infrastructure:
-      #     requires:
-      #       - "add_publicipaddress_to_inventory"
+      - add_publicipaddress_to_inventory:
+          requires:
+            - "create_ec2_instances"
+      - configure_infrastructure:
+          requires:
+            - "add_publicipaddress_to_inventory"
       - smoke_test:
           requires:
             - "create_ec2_instances"
