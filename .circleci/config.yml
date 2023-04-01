@@ -28,6 +28,24 @@ commands:
           name: "Delete << parameters.stack_name >> stack"
           command: |
             aws cloudformation delete-stack --stack-name << parameters.stack_name >>
+  deploy_stack:
+    parameters:
+      stack_name:
+        type: string
+      template_file:
+        type: string
+      parameter_overrides:
+        type: string
+    steps:
+      - run:
+          name: "Deploy << parameters.stack_name >> stack"
+          command: |
+            aws cloudformation deploy \
+            --stack-name << parameters.stack_name >> \
+            --template-file << parameters.template_file >> \
+            --parameter-overrides << parameters.parameter_overrides >> \
+            --no-fail-on-empty-changeset \
+            --region us-east-1
 
 # Define a job to be invoked later in a workflow.
 # See: https://circleci.com/docs/configuration-reference/#jobs
@@ -192,13 +210,17 @@ jobs:
     steps:
       - checkout
       - aws-cli/setup
-      - run:
-          name: "Create s3 bucket"
-          command: |
-            aws cloudformation deploy \
-            --template-file $TEMPLATE_DIR/bucket.yml \
-            --stack-name S3Bucket-${CIRCLE_WORKFLOW_ID:0:7} \
-            --parameter-overrides MyBucketName="thaidg-bucket-${CIRCLE_WORKFLOW_ID:0:7} CIRCLE_WORKFLOW_ID=${CIRCLE_WORKFLOW_ID:0:7}"
+      - deploy_stack:
+          stack_name: "S3Bucket-${CIRCLE_WORKFLOW_ID:0:7}"
+          template_file: "$TEMPLATE_DIR/bucket.yml"
+          parameter_overrides: "MyBucketName=thaidg-bucket-${CIRCLE_WORKFLOW_ID:0:7} CIRCLE_WORKFLOW_ID=${CIRCLE_WORKFLOW_ID:0:7}"
+      # - run:
+      #     name: "Create s3 bucket"
+      #     command: |
+      #       aws cloudformation deploy \
+      #       --template-file $TEMPLATE_DIR/bucket.yml \
+      #       --stack-name S3Bucket-${CIRCLE_WORKFLOW_ID:0:7} \
+      #       --parameter-overrides MyBucketName=thaidg-bucket-${CIRCLE_WORKFLOW_ID:0:7} CIRCLE_WORKFLOW_ID=${CIRCLE_WORKFLOW_ID:0:7}
       - run:
           name: "Copy file to s3"
           command: |
@@ -242,13 +264,13 @@ jobs:
       - attach_workspace:
           at: ~/
       - run:
-          name: "Create or update Cloud Front distribution"
+          name: "Get static_host"
           command: |
             export static_host=$(cat ~/websiteurl)
-            aws cloudformation deploy \
-            --template-file $TEMPLATE_DIR/cloudfront.yml \
-            --stack-name production-distro \
-            --parameter-overrides S3StaticHost=$static_host
+      - deploy_stack:
+          stack_name: "production-distro"
+          template_file: "$TEMPLATE_DIR/cloudfront.yml"
+          parameter_overrides: "S3StaticHost=$static_host"
 
   # Destroy the previous production version's S3 bucket and CloudFormation stack. 
   clean_up_old_front_end:
@@ -292,12 +314,12 @@ workflows:
       #     requires:
       #       - "configure_infrastructure"
       - create_and_deploy_front_end
-      - get_last_bucket_name:
+      - get_last_bucket_info:
           requires:
             - "create_and_deploy_front_end"
       - promote_to_production:
           requires:
-            - "get_last_bucket_name"
+            - "get_last_bucket_info"
       - clean_up_old_front_end:
           requires:
             - "promote_to_production"
