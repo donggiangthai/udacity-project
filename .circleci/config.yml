@@ -164,7 +164,7 @@ jobs:
           name: "Smoke test"
           command: |
             while read line; do
-              if [[ $line -eq [all] ]]; then
+              if [[ "$line" == "[all]" ]]; then
                 continue
               else
                 if curl -s --head http://$line:3000; then
