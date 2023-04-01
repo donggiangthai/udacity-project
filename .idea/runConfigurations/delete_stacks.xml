@@ -13,7 +13,7 @@
     <option name="ADD_CONTENT_ROOTS" value="true" />
     <option name="ADD_SOURCE_ROOTS" value="true" />
     <option name="SCRIPT_NAME" value="$PROJECT_DIR$/cloudformation.py" />
-    <option name="PARAMETERS" value="delete --profile-name ThaiDG-CICD --stack-name EC2Instances" />
+    <option name="PARAMETERS" value="delete --profile-name ThaiDG-CICD --stack-name EC2-Instances-CircleCI Launch-Template-CircleCI Security-CircleCI NetWorking-CircleCI" />
     <option name="SHOW_COMMAND_LINE" value="false" />
     <option name="EMULATE_TERMINAL" value="true" />
     <option name="MODULE_MODE" value="false" />

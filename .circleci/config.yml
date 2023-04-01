@@ -9,10 +9,7 @@ orbs:
 # See: https://circleci.com/docs/configuration-reference/#jobs
 jobs:
   create_network:
-    # Specify the execution environment. You can specify an image from Docker Hub or use one of our convenience images from CircleCI's Developer Hub.
-    # See: https://circleci.com/docs/configuration-reference/#executor-job
-    docker:
-      - image: amazon/aws-cli
+    executor: aws-cli/default
     environment:
       TEMPLATE_DIR: ~/project/build-cicd-pipeline/continuous-delivery/exercise/create-infrastructure
     # Add steps to the job
@@ -20,6 +17,7 @@ jobs:
     steps:
       # This command will pull all of the files into a directory called project which can be found at ~/project.
       - checkout
+      - aws-cli/setup
       - run:
           name: "Create Cloudformation NetWorking Stack"
           command: |
@@ -31,10 +29,7 @@ jobs:
             --region us-east-1
 
   create_security:
-    # Specify the execution environment. You can specify an image from Docker Hub or use one of our convenience images from CircleCI's Developer Hub.
-    # See: https://circleci.com/docs/configuration-reference/#executor-job
-    docker:
-      - image: amazon/aws-cli
+    executor: aws-cli/default
     environment:
       TEMPLATE_DIR: ~/project/build-cicd-pipeline/continuous-delivery/exercise/create-infrastructure
     # Add steps to the job
@@ -42,6 +37,7 @@ jobs:
     steps:
       # This command will pull all of the files into a directory called project which can be found at ~/project.
       - checkout
+      - aws-cli/setup
       - run:
           name: "Create Cloudformation Security Stack"
           command: |
@@ -54,10 +50,7 @@ jobs:
             --capabilities "CAPABILITY_IAM" "CAPABILITY_NAMED_IAM"
 
   create_launch_template:
-    # Specify the execution environment. You can specify an image from Docker Hub or use one of our convenience images from CircleCI's Developer Hub.
-    # See: https://circleci.com/docs/configuration-reference/#executor-job
-    docker:
-      - image: amazon/aws-cli
+    executor: aws-cli/default
     environment:
       TEMPLATE_DIR: ~/project/build-cicd-pipeline/continuous-delivery/exercise/create-infrastructure
     # Add steps to the job
@@ -65,6 +58,7 @@ jobs:
     steps:
       # This command will pull all of the files into a directory called project which can be found at ~/project.
       - checkout
+      - aws-cli/setup
       - run:
           name: "Create Cloudformation Launch Template Stack"
           command: |
@@ -76,10 +70,7 @@ jobs:
             --region us-east-1
 
   create_ec2_instances:
-    # Specify the execution environment. You can specify an image from Docker Hub or use one of our convenience images from CircleCI's Developer Hub.
-    # See: https://circleci.com/docs/configuration-reference/#executor-job
-    docker:
-      - image: amazon/aws-cli
+    executor: aws-cli/default
     environment:
       TEMPLATE_DIR: ~/project/build-cicd-pipeline/continuous-delivery/exercise/create-infrastructure
     # Add steps to the job
@@ -87,6 +78,7 @@ jobs:
     steps:
       # This command will pull all of the files into a directory called project which can be found at ~/project.
       - checkout
+      - aws-cli/setup
       - run:
           name: "Create Cloudformation EC2 Instances Stack"
           command: |
@@ -99,8 +91,6 @@ jobs:
 
   add_publicipaddress_to_inventory:
     executor: aws-cli/default
-    # Specify the execution environment. You can specify an image from Docker Hub or use one of our convenience images from CircleCI's Developer Hub.
-    # See: https://circleci.com/docs/configuration-reference/#executor-job
     environment:
       PROJECT_TAG: ThaiDG-Udacity-ci-cd-exercise-ansible-exercise
     # Add steps to the job
@@ -127,7 +117,6 @@ jobs:
           paths:
             - "inventory"
 
-  # Exercise: Config and Deployment
   configure_infrastructure: 
     docker:
       - image: python:3.10.10-alpine3.17
