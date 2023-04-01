@@ -40,6 +40,9 @@ commands:
       - run:
           name: "Deploy << parameters.stack_name >> stack"
           command: |
+            echo << parameters.stack_name >>
+            echo << parameters.template_file >>
+            echo << parameters.parameter_overrides >>
             aws cloudformation deploy \
             --stack-name << parameters.stack_name >> \
             --template-file << parameters.template_file >> \
@@ -263,14 +266,10 @@ jobs:
       - aws-cli/setup
       - attach_workspace:
           at: ~/
-      - run:
-          name: "Get static_host"
-          command: |
-            export static_host=$(cat ~/websiteurl)
       - deploy_stack:
           stack_name: "production-distro"
           template_file: "$TEMPLATE_DIR/cloudfront.yml"
-          parameter_overrides: "S3StaticHost=$static_host"
+          parameter_overrides: "S3StaticHost=$(cat ~/websiteurl)"
 
   # Destroy the previous production version's S3 bucket and CloudFormation stack. 
   clean_up_old_front_end:
