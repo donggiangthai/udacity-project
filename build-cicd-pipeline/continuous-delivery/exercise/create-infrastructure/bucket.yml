@@ -1,7 +1,4 @@
 Parameters:
-    EnvironmentName:
-        Type: String
-        Description: "The environment name as a prefix"
     # New Bucket name
     MyBucketName:
         Description: "Existing Bucket name"
@@ -27,7 +24,16 @@ Resources:
                         Effect: Allow
                         Principal: '*'
                         Action: s3:GetObject
-                        Resource: !Join [ '', [ 'arn:aws:s3:::', !Ref 'WebsiteBucket', /* ] ]
+                        Resource:
+                            -   Fn::Join:
+                                    - ""
+                                    -   - "arn:aws:s3:::"
+                                        -   Ref: "WebsiteBucket"
+                            -   Fn::Join:
+                                    - ""
+                                    -   - "arn:aws:s3:::"
+                                        -   Ref: "WebsiteBucket"
+                                        - "/*"
 
 Outputs:
     WebsiteURL:
