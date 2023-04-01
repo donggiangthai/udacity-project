@@ -213,7 +213,7 @@ jobs:
       - deploy_stack:
           stack_name: S3Bucket-${CIRCLE_WORKFLOW_ID:0:7}
           template_file: $TEMPLATE_DIR/bucket.yml
-          parameter_overrides: MyBucketName=thaidg-bucket-${CIRCLE_WORKFLOW_ID:0:7} CircleWorkflowId=${CIRCLE_WORKFLOW_ID:0:7}
+          parameter_overrides: MyBucketName=thaidg-bucket CircleWorkflowId=${CIRCLE_WORKFLOW_ID:0:7}
       # - run:
       #     name: "Create s3 bucket"
       #     command: |
