@@ -92,7 +92,7 @@ jobs:
   add_publicipaddress_to_inventory:
     executor: aws-cli/default
     environment:
-      INVENTORY_DIR: ~/project/build-cicd-pipeline/continuous-delivery/exercise/configuration-and-deployment
+      INVENTORY_DIR: $HOME/project/build-cicd-pipeline/continuous-delivery/exercise/configuration-and-deployment
       PROJECT_TAG: ThaiDG-Udacity-ci-cd-exercise-ansible-exercise
     # Add steps to the job
     # See: https://circleci.com/docs/configuration-reference/#steps
