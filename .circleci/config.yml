@@ -231,48 +231,49 @@ jobs:
       - checkout
       - aws-cli/setup
       - deploy_stack:
-          stack_name: S3Bucket-${CIRCLE_WORKFLOW_ID:0:7}
+          stack_name: S3Bucket-${<< pipeline.git.revision >>:0:7}
           template_file: $TEMPLATE_DIR/bucket.yml
-          parameter_overrides: MyBucketName=thaidg-bucket CircleWorkflowId=${CIRCLE_WORKFLOW_ID:0:7}
-      # - run:
-      #     name: "Create s3 bucket"
-      #     command: |
-      #       aws cloudformation deploy \
-      #       --template-file $TEMPLATE_DIR/bucket.yml \
-      #       --stack-name S3Bucket-${CIRCLE_WORKFLOW_ID:0:7} \
-      #       --parameter-overrides MyBucketName=thaidg-bucket-${CIRCLE_WORKFLOW_ID:0:7} CIRCLE_WORKFLOW_ID=${CIRCLE_WORKFLOW_ID:0:7}
+          parameter_overrides: MyBucketName=thaidg-bucket-${<< pipeline.git.revision >>:0:7}
       - run:
           name: "Copy file to s3"
           command: |
             cd ~/project/build-cicd-pipeline/continuous-delivery/exercise/promote-to-production/
-            aws s3 sync . s3://thaidg-bucket-${CIRCLE_WORKFLOW_ID:0:7} --delete
+            aws s3 sync . s3://thaidg-bucket-${<< pipeline.git.revision >>:0:7} --delete
 
-  # Fetch and save the pipeline ID (bucket ID) responsible for the last release.
-  get_last_bucket_info:
+  get_bucket_info:
     executor: aws-cli/default
     steps:
       - checkout
       - aws-cli/setup
       - run:
-          name: "Fetch and save the circleCI workflow id responsible for the last release."
+          name: "Fetch and save the static host of the current bucket"
           command: |
-            aws cloudformation \
-            list-exports --query "Exports[?Name==\`CircleWorkflowId\`].Value" \
-            --no-paginate --output text > ~/circleworkflowid
-      - run:
-          name: "Fetch and save the static host"
-          command: |
+            touch ~/websiteurl
+            static_export_name=S3Bucket-${<< pipeline.git.revision >>:0:7}-WebsiteURL
             host=$(aws cloudformation list-exports \
-            --query "Exports[?Name==\`WebsiteURL\`].Value" \
+            --query "Exports[?Name==\`$static_export_name\`].Value" \
             --no-paginate --output text)
             # Remove prefix ending in "//"
             static_host=${host#*//}
             echo $static_host > ~/websiteurl
+      - run:
+          name: "Save the old bucket name if it exist"
+          command: |
+            touch ~/existbucket
+            if aws s3 ls s3://thaidg-bucket-${<< pipeline.git.base_revision >>:0:7} 2>&1 | grep 'NoSuchBucket'
+            then
+              echo "Old bucket doesn't exist"
+              echo "" > ~/existbucket
+            else
+              old_bucket_uri=s3://thaidg-bucket-${<< pipeline.git.base_revision >>:0:7}
+              echo "Old bucket uri: $old_bucket_uri"
+              echo $old_bucket_uri > ~/existbucket
+            fi
       - persist_to_workspace:
           root: ~/
           paths: 
-            - circleworkflowid
             - websiteurl
+            - existbucket
 
   promote_to_production:
     executor: aws-cli/default
@@ -297,13 +298,16 @@ jobs:
       - attach_workspace:
           at: ~/
       - run:
-          name: "Destroy the previous S3 bucket object" 
+          name: "Destroy the previous S3 bucket object"
           command: |
-            export circle_workflow_id=$(cat ~/circleworkflowid)
-            s3_uri="s3://thaidg-bucket-$circle_workflow_id"
-            aws s3 rm $s3_uri --recursive
+            old_bucket_uri=$(cat ~/existbucket)
+            if [[ -n $old_bucket_uri ]]
+            then
+              # Empty before delete the bucket
+              aws s3 rm $old_bucket_uri --recursive
+            fi
       - delete_stack:
-          stack_name: S3Bucket-$circle_workflow_id
+          stack_name: S3Bucket-${<< pipeline.git.base_revision >>:0:7}
 
 # Orchestrate jobs using workflows
 # See: https://circleci.com/docs/configuration-reference/#workflows
@@ -330,12 +334,12 @@ workflows:
       #     requires:
       #       - "configure_infrastructure"
       - create_and_deploy_front_end
-      - get_last_bucket_info:
+      - get_bucket_info:
           requires:
             - "create_and_deploy_front_end"
       - promote_to_production:
           requires:
-            - "get_last_bucket_info"
+            - "get_bucket_info"
       - clean_up_old_front_end:
           requires:
             - "promote_to_production"
