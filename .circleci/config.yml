@@ -27,7 +27,24 @@ commands:
       - run:
           name: "Delete << parameters.stack_name >> stack"
           command: |
-            aws cloudformation delete-stack --stack-name << parameters.stack_name >>
+            # Get stack id for the delete_stack waiter
+            stack_info=$(aws cloudformation describe-stacks --stack-name << parameters.stack_name >> --query "Stacks[*] | [0].StackId" 2>&1)
+            if echo $stack_info | grep 'does not exist'
+            then
+              echo "Stack does not exist."
+              echo $stack_info
+              exit 0
+            fi
+            if echo $stack_info | grep 'ValidationError'
+            then
+              echo $stack_info
+              exit 1
+            else
+              aws cloudformation delete-stack --stack-name << parameters.stack_name >>
+              aws cloudformation wait stack-delete-complete --stack-name $stack_info
+              echo "Stack deleted."
+              exit 0
+            fi
   deploy_stack:
     parameters:
       stack_name:
