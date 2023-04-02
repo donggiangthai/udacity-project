@@ -3,27 +3,15 @@ Parameters:
     MyBucketName:
         Description: "The Bucket name"
         Type: String
-    ExistBucketName:
-        Description: "Existing Bucket name"
-        Type: String
-        Default: "thaidg-continuous-delivery-987941172576-us-east-1"
-    CircleWorkflowId:
-        Description: "CircleCI workflow id"
-        Type: String
 Resources:
     WebsiteBucket:
         Type: AWS::S3::Bucket
         Properties:
-            BucketName:
-                Fn::Join:
-                    - ""
-                    - - !Ref MyBucketName
-                      - "-"
-                      - !Ref CircleWorkflowId
+            BucketName: !Ref MyBucketName
             AccessControl: "PublicRead"
             WebsiteConfiguration:
-                IndexDocument: index.html
-                ErrorDocument: error.html
+                IndexDocument: "index.html"
+                ErrorDocument: "error.html"
 
     WebsiteBucketPolicy:
         Type: AWS::S3::BucketPolicy
@@ -32,10 +20,10 @@ Resources:
                 Ref: "WebsiteBucket"
             PolicyDocument:
                 Statement:
-                    -   Sid: PublicReadForGetBucketObjects
-                        Effect: Allow
+                    -   Sid: "PublicReadForGetBucketObjects"
+                        Effect: "Allow"
                         Principal: '*'
-                        Action: s3:GetObject
+                        Action: "s3:GetObject*"
                         Resource:
                             -   Fn::Join:
                                     - ""
@@ -52,26 +40,16 @@ Outputs:
         Description: "S3 static host endpoint"
         Value:
             Fn::GetAtt:
-                - WebsiteBucket
-                - WebsiteURL
+                - "WebsiteBucket"
+                - "WebsiteURL"
         Export:
-            Name: "WebsiteURL"
+            Name:
+                Fn::Join:
+                    - ""
+                    -   -   Ref: "AWS::StackName"
+                        - "-WebsiteURL"
 
     WebsiteBucketName:
         Description: "S3 bucket name"
         Value:
             Ref: "WebsiteBucket"
-        Export:
-            Name: "WebsiteBucketName"
-
-    ExistBucketName:
-        Description: "Existing S3 name"
-        Value: !Ref ExistBucketName
-        Export:
-            Name: "ExistBucketName"
-
-    CircleWorkflowId:
-        Description: "CircleCI workflow id"
-        Value: !Ref CircleWorkflowId
-        Export:
-            Name: "CircleWorkflowId"
