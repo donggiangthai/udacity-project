@@ -327,6 +327,7 @@ jobs:
       - aws-cli/setup
       - attach_workspace:
           at: ~/
+      - get_commit_hash
       - run:
           name: "Destroy the previous S3 bucket object"
           command: |
