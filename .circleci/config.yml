@@ -26,6 +26,7 @@ commands:
     steps:
       - run:
           name: "Delete << parameters.stack_name >> stack"
+          shell: /bin/bash
           command: |
             # Get stack id for the delete_stack waiter
             stack_info=$(aws cloudformation describe-stacks --stack-name << parameters.stack_name >> --query "Stacks[*] | [0].StackId" 2>&1)
@@ -285,9 +286,11 @@ jobs:
             echo $static_host > ~/websiteurl
       - run:
           name: "Save the old bucket name if it exist"
+          shell: /bin/bash
           command: |
             touch ~/existbucket
-            if aws s3 ls s3://thaidg-bucket-$pre_short_hash 2>&1 | grep 'NoSuchBucket'
+            bucket_info=$(aws s3 ls s3://thaidg-bucket-$pre_short_hash 2>&1)
+            if echo $bucket_info | grep 'NoSuchBucket'
             then
               echo "Old bucket doesn't exist"
               echo "" > ~/existbucket
