@@ -66,6 +66,13 @@ commands:
             --parameter-overrides << parameters.parameter_overrides >> \
             --no-fail-on-empty-changeset \
             --region us-east-1
+  get_commit_hash:
+    steps:
+      - run:
+          name: "Get commit short hash for current and previous commit"
+          command: |
+            echo 'export cur_short_hash="$(cat ~/curshorthash)"' >> "$BASH_ENV"
+            echo 'export pre_short_hash="$(cat ~/preshorthash)"' >> "$BASH_ENV"
 
 # Define a job to be invoked later in a workflow.
 # See: https://circleci.com/docs/configuration-reference/#jobs
@@ -230,26 +237,46 @@ jobs:
     steps:
       - checkout
       - aws-cli/setup
+      - run:
+          name: "Get git commit short-hash for the current and the previous commit and store to workspace"
+          command: |
+            # Git hash for the current commit
+            export current_commit=<< pipeline.git.revision >>
+            export cur_short_hash="${current_commit:0:7}"
+            echo $cur_short_hash > ~/curshorthash
+            # Git hash for the previous commit
+            export previous_commit=<< pipeline.git.base_revision >>
+            export pre_short_hash="${previous_commit:0:7}"
+            echo $pre_short_hash > ~/preshorthash
+      - persist_to_workspace:
+          root: ~/
+          paths:
+            - "curshorthash"
+            - "preshorthash"
+      - get_commit_hash
       - deploy_stack:
-          stack_name: S3Bucket-${<< pipeline.git.revision >>:0:7}
+          stack_name: S3Bucket-$cur_short_hash
           template_file: $TEMPLATE_DIR/bucket.yml
-          parameter_overrides: MyBucketName=thaidg-bucket-${<< pipeline.git.revision >>:0:7}
+          parameter_overrides: MyBucketName=thaidg-bucket-$cur_short_hash
       - run:
           name: "Copy file to s3"
           command: |
             cd ~/project/build-cicd-pipeline/continuous-delivery/exercise/promote-to-production/
-            aws s3 sync . s3://thaidg-bucket-${<< pipeline.git.revision >>:0:7} --delete
+            aws s3 sync . s3://thaidg-bucket-$cur_short_hash --delete
 
   get_bucket_info:
     executor: aws-cli/default
     steps:
       - checkout
       - aws-cli/setup
+      - attach_workspace:
+          at: ~/
+      - get_commit_hash
       - run:
           name: "Fetch and save the static host of the current bucket"
           command: |
             touch ~/websiteurl
-            static_export_name=S3Bucket-${<< pipeline.git.revision >>:0:7}-WebsiteURL
+            static_export_name=S3Bucket-$cur_short_hash-WebsiteURL
             host=$(aws cloudformation list-exports \
             --query "Exports[?Name==\`$static_export_name\`].Value" \
             --no-paginate --output text)
@@ -260,12 +287,12 @@ jobs:
           name: "Save the old bucket name if it exist"
           command: |
             touch ~/existbucket
-            if aws s3 ls s3://thaidg-bucket-${<< pipeline.git.base_revision >>:0:7} 2>&1 | grep 'NoSuchBucket'
+            if aws s3 ls s3://thaidg-bucket-$pre_short_hash 2>&1 | grep 'NoSuchBucket'
             then
               echo "Old bucket doesn't exist"
               echo "" > ~/existbucket
             else
-              old_bucket_uri=s3://thaidg-bucket-${<< pipeline.git.base_revision >>:0:7}
+              old_bucket_uri=s3://thaidg-bucket-$pre_short_hash
               echo "Old bucket uri: $old_bucket_uri"
               echo $old_bucket_uri > ~/existbucket
             fi
@@ -307,7 +334,7 @@ jobs:
               aws s3 rm $old_bucket_uri --recursive
             fi
       - delete_stack:
-          stack_name: S3Bucket-${<< pipeline.git.base_revision >>:0:7}
+          stack_name: S3Bucket-$pre_short_hash
 
 # Orchestrate jobs using workflows
 # See: https://circleci.com/docs/configuration-reference/#workflows
