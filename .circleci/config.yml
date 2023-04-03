@@ -6,7 +6,7 @@ commands:
       - run:
           name: "Export environment variable"
           command: |
-            echo 'export PROJECT_ROOT_DIR="/root/project/build-cicd-pipeline/final-project"' >> "$BASH_ENV"
+            echo 'export PROJECT_ROOT_DIR="/home/circleci/project/build-cicd-pipeline/final-project"' >> "$BASH_ENV"
 
 jobs:
   build-frontend:
