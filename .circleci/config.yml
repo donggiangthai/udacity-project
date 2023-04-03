@@ -110,6 +110,7 @@ jobs:
             npm install
             npm audit fix --audit-level=critical --force
             # If the "npm audit fix" command above could not fix all critical vulnerabilities, try “npm audit fix --force” again
+            npm audit fix --force
             npm audit --audit-level=critical
       - save_cache:
           paths: [frontend/node_modules]
@@ -134,6 +135,7 @@ jobs:
             npm install
             npm audit fix --audit-level=critical --force
             # If the "npm audit fix" command above could not fix all critical vulnerabilities, try “npm audit fix --force” again
+            npm audit fix --force
             npm audit --audit-level=critical
       - save_cache:
           paths: [backend/node_modules]
