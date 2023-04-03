@@ -108,7 +108,8 @@ jobs:
           command: |
             cd $PROJECT_ROOT_DIR/frontend
             npm install
-            # npm install oauth-sign@^0.9.0
+            npm audit fix --audit-level=critical --force
+            # If the "npm audit fix" command above could not fix all critical vulnerabilities, try “npm audit fix --force” again
             npm audit --audit-level=critical
       - save_cache:
           paths: [frontend/node_modules]
@@ -131,7 +132,8 @@ jobs:
           command: |
             cd $PROJECT_ROOT_DIR/backend
             npm install
-            # npm install oauth-sign@^0.9.0
+            npm audit fix --audit-level=critical --force
+            # If the "npm audit fix" command above could not fix all critical vulnerabilities, try “npm audit fix --force” again
             npm audit --audit-level=critical
       - save_cache:
           paths: [backend/node_modules]
