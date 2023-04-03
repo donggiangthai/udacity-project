@@ -12,7 +12,7 @@ jobs:
   build-frontend:
     docker:
       # circleci/node is deprecated, use cimg/node instead
-      - image: cimg/node:19.8.1
+      - image: cimg/node:13.8.0
     steps:
       - checkout
       - exports
@@ -25,7 +25,7 @@ jobs:
   build-backend:
     docker:
       # circleci/node is deprecated, use cimg/node instead
-      - image: cimg/node:19.8.1
+      - image: cimg/node:13.8.0
     steps:
       - checkout
       - exports
