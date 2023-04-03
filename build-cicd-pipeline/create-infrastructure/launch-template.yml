@@ -49,11 +49,7 @@ Resources:
                     -   ResourceType: "instance"
                         Tags:
                             -   Key: "Project"
-                                Value:
-                                    Fn::Join:
-                                        - ""
-                                        -   - !Ref EnvironmentName
-                                            - "-ansible-exercise"
+                                Value: !Ref EnvironmentName
             TagSpecifications:
                 -   ResourceType: "launch-template"
                     Tags:
@@ -65,11 +61,7 @@ Resources:
                                         - "-launch-template-"
                                         -   Ref: "AWS::Region"
                         -   Key: "Project"
-                            Value:
-                                Fn::Join:
-                                    - ""
-                                    -   - !Ref EnvironmentName
-                                        - "-ansible-exercise"
+                            Value: !Ref EnvironmentName
             LaunchTemplateName:
                 Fn::Join:
                     - ""

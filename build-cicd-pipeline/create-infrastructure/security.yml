@@ -31,12 +31,8 @@ Resources:
                                 - "-ec2-instance-security-group-"
                                 -   Ref: "AWS::Region"
                 -   Key: "Project"
-                    Value:
-                        Fn::Join:
-                            - ""
-                            -   - !Ref EnvironmentName
-                                - "-ansible-exercise"
-
+                    Value: !Ref EnvironmentName
+    
     EC2InstanceOutboundRule:
         Type: AWS::EC2::SecurityGroupEgress
         Properties:
@@ -54,8 +50,8 @@ Resources:
             GroupId:
                 Ref: "EC2InstanceSecurityGroup"
             IpProtocol: "tcp"
-            FromPort: 3000
-            ToPort: 3000
+            FromPort: 3030
+            ToPort: 3030
             CidrIp: "0.0.0.0/0"
             Description: "Allow HTTP"
 

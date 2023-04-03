@@ -4,9 +4,81 @@ commands:
   exports:
     steps:
       - run:
+          name: "Get git commit short-hash for the current and the previous commit"
+          command: |
+            # Git hash for the current commit
+            echo 'export current_commit=<< pipeline.git.revision >>' >> "$BASH_ENV"
+            echo 'export CUR_SHORT_HASH="${current_commit:0:7}"' >> "$BASH_ENV"
+            # Git hash for the previous commit
+            echo 'export previous_commit=<< pipeline.git.base_revision >>' >> "$BASH_ENV"
+            echo 'export PRE_SHORT_HASH="${previous_commit:0:7}"' >> "$BASH_ENV"
+      - run:
           name: "Export environment variable"
           command: |
+            echo 'export PROJECT_DIR="/home/circleci/project"' >> "$BASH_ENV"
+            echo 'export WORKSPACE_DIR="/home/circleci/workspace"' >> "$BASH_ENV"
             echo 'export PROJECT_ROOT_DIR="/home/circleci/project/build-cicd-pipeline/final-project"' >> "$BASH_ENV"
+            echo 'export TEMPLATE_ROOT_DIR="/home/circleci/project/build-cicd-pipeline/create-infrastructure"' >> "$BASH_ENV"
+            echo 'export PROJECT_TAG="ThaiDG-Udacity-final-project"' >> "$BASH_ENV"
+
+  delete_stack:
+    parameters:
+      stack_name:
+        type: string
+      when:
+        default: "on_success"
+        type: enum
+        enum: ["always", "on_success", "on_fail"]
+    steps:
+      - run:
+          name: "Delete << parameters.stack_name >> stack"
+          shell: /bin/bash
+          when: << parameters.when >>
+          command: |
+            # Get stack id for the delete_stack waiter
+            stack_info=$(aws cloudformation describe-stacks --stack-name << parameters.stack_name >> --query "Stacks[*] | [0].StackId" 2>&1)
+            if echo $stack_info | grep 'does not exist'
+            then
+              echo "Stack does not exist."
+              echo $stack_info
+              exit 0
+            fi
+            if echo $stack_info | grep 'ValidationError'
+            then
+              echo $stack_info
+              exit 1
+            else
+              aws cloudformation delete-stack --stack-name << parameters.stack_name >>
+              aws cloudformation wait stack-delete-complete --stack-name $stack_info
+              if "<< parameters.when >>" == "on_fail"
+              then
+                echo "Roll back completed. Green environment destroyed."
+                exit 1
+              fi
+              echo "Stack deleted."
+              exit 0
+            fi
+  
+  deploy_stack:
+    parameters:
+      stack_name:
+        type: string
+      template_file:
+        type: string
+      parameter_overrides:
+        type: string
+    steps:
+      - run:
+          name: "Deploy << parameters.stack_name >> stack"
+          command: |
+            aws cloudformation deploy \
+            --stack-name << parameters.stack_name >> \
+            --template-file << parameters.template_file >> \
+            --parameter-overrides << parameters.parameter_overrides >> \
+            --no-fail-on-empty-changeset \
+            --region us-east-1 \
+            --tags Project="ThaiDG-Udacity-final-project" \
+            --capabilities "CAPABILITY_IAM" "CAPABILITY_NAMED_IAM"
 
 jobs:
   build-frontend:
@@ -110,7 +182,7 @@ jobs:
             npm install
             npm audit fix --audit-level=critical --force
             # If the "npm audit fix" command above could not fix all critical vulnerabilities, try “npm audit fix --force” again
-            # npm audit fix --force
+            npm audit fix --force
             npm audit --audit-level=critical
       - save_cache:
           paths: [frontend/node_modules]
@@ -135,11 +207,130 @@ jobs:
             npm install
             npm audit fix --audit-level=critical --force
             # If the "npm audit fix" command above could not fix all critical vulnerabilities, try “npm audit fix --force” again
-            # npm audit fix --force
+            npm audit fix --force
             npm audit --audit-level=critical
       - save_cache:
           paths: [backend/node_modules]
           key: backend-build
+
+  create-network-infrastructure:
+    executor: aws-cli/default
+    # Add steps to the job
+    # See: https://circleci.com/docs/configuration-reference/#steps
+    steps:
+      # This command will pull all of the files into a directory called project which can be found at ~/project.
+      - checkout
+      # Export environment variable
+      - exports
+      # Set up AWS Credentials
+      - aws-cli/setup
+      # All infrastructure does not cost money so don't need to remove when fail
+      # Create networking
+      - deploy_stack:
+          stack_name: 'NetWorking-Final-Project'
+          template_file: $TEMPLATE_ROOT_DIR/networking.yml
+          parameter_overrides: file://$TEMPLATE_ROOT_DIR/networking-parameters.json
+      # Create security
+      - deploy_stack:
+          stack_name: 'Security-Final-Project'
+          template_file: $TEMPLATE_ROOT_DIR/security.yml
+          parameter_overrides: file://$TEMPLATE_ROOT_DIR/security-parameters.json
+      # Create launch template
+      - deploy_stack:
+          stack_name: 'Launch-Template-Final-Project'
+          template_file: $TEMPLATE_ROOT_DIR/launch-template.yml
+          parameter_overrides: file://$TEMPLATE_ROOT_DIR/launch-template-parameters.json
+
+  create-backend-infrastructure:
+    executor: aws-cli/default
+    # Add steps to the job
+    # See: https://circleci.com/docs/configuration-reference/#steps
+    steps:
+      # This command will pull all of the files into a directory called project which can be found at ~/project.
+      - checkout
+      # Export environment variable
+      - exports
+      # Set up AWS Credentials
+      - aws-cli/setup
+      # Create backend infrastructure
+      - deploy_stack:
+          stack_name: Udapeople-Backend-${CUR_SHORT_HASH}
+          template_file: $TEMPLATE_ROOT_DIR/ec2-instances.yml
+          parameter_overrides: file://$TEMPLATE_ROOT_DIR/ec2-instances-parameters.json
+      # Rollback if fail
+      - delete_stack:
+          stack_name: Udapeople-Backend-${CUR_SHORT_HASH}
+          when: "on_fail"
+
+  prepare-inventory:
+    executor: aws-cli/default
+    # Add steps to the job
+    # See: https://circleci.com/docs/configuration-reference/#steps
+    steps:
+      # This command will pull all of the files into a directory called project which can be found at ~/project.
+      - checkout
+      # Export environment variable
+      - exports
+      # Set up AWS Credentials
+      - aws-cli/setup
+      - run:
+          name: "Get backend server Public IP Address"
+          command: |
+            aws ec2 describe-instances \
+            --query 'Reservations[*].Instances[*].PublicIpAddress' \
+            --filters "Name=tag:Project,Values=$PROJECT_TAG" \
+            --output text >> $PROJECT_DIR/.circleci/ansible/inventory.txt
+      - run:
+          name: "Move inventory file into workspace"
+          command: |
+            mkdir $WORKSPACE_DIR
+            mv $PROJECT_DIR/.circleci/ansible/inventory.txt $WORKSPACE_DIR/inventory.txt
+      - persist_to_workspace:
+          root: $WORKSPACE_DIR
+          paths:
+            - "inventory.txt"
+      # Rollback if fail
+      - delete_stack:
+          stack_name: Udapeople-Backend-${CUR_SHORT_HASH}
+          when: "on_fail"
+
+  create-frontend-infrastructure:
+    executor: aws-cli/default
+    steps:
+      # This command will pull all of the files into a directory called project which can be found at ~/project.
+      - checkout
+      # Export environment variable
+      - exports
+      # Set up AWS Credentials
+      - aws-cli/setup
+      # Create frontend server
+      - deploy_stack:
+          stack_name: Udapeople-Frontend-${CUR_SHORT_HASH}
+          template_file: $TEMPLATE_ROOT_DIR/bucket.yml
+          parameter_overrides: MyBucketName=udapeople-frontend-$CUR_SHORT_HASH
+      # Rollback if fail
+      - delete_stack:
+          stack_name: Udapeople-Frontend-${CUR_SHORT_HASH}
+          when: "on_fail"
+
+  clean-up:
+    executor: aws-cli/default
+    steps:
+      # This command will pull all of the files into a directory called project which can be found at ~/project.
+      - checkout
+      # Export environment variable
+      - exports
+      # Set up AWS Credentials
+      - aws-cli/setup
+      # Within every build, we create a unique cloud formation stack for frontend and backend infrastructure
+      # And we didn't configure anything to use these stack, therefore we must clean them up automatically
+      # Otherwise, we have to do it manually, of course!
+      # Remove the backend infrastructure
+      - delete_stack:
+          stack_name: Udapeople-Backend-${CUR_SHORT_HASH}
+      # Remove the frontend infrastructure
+      - delete_stack:
+          stack_name: Udapeople-Frontend-${CUR_SHORT_HASH}
 
 
 workflows:
@@ -159,3 +350,11 @@ workflows:
       - scan-backend:
           requires:
             - "build-backend"
+      - create-network-infrastructure
+      - create-backend-infrastructure:
+          requires:
+            - "create-network-infrastructure"
+      - prepare-inventory:
+          requires:
+            - "create-backend-infrastructure"
+      - create-frontend-infrastructure
