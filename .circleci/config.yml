@@ -1,0 +1,43 @@
+version: 2.1
+
+commands:
+  exports:
+    steps:
+      - run:
+          name: "Export environment variable"
+          command: |
+            echo 'export PROJECT_ROOT_DIR="/root/project/build-cicd-pipeline/final-project"' >> "$BASH_ENV"
+
+jobs:
+  build-frontend:
+    docker:
+      # circleci/node is deprecated, use cimg/node instead
+      - image: cimg/node:19.8.1
+    steps:
+      - checkout
+      - exports
+      - run:
+          name: "Build frontend"
+          command: |
+            cd $PROJECT_ROOT_DIR/frontend
+            npm install
+            npm run build
+  build-backend:
+    docker:
+      # circleci/node is deprecated, use cimg/node instead
+      - image: cimg/node:19.8.1
+    steps:
+      - checkout
+      - exports
+      - run:
+          name: "Build backend"
+          command: |
+            cd $PROJECT_ROOT_DIR/backend
+            npm install
+            npm run build
+
+workflows:
+  final-project-workflows:
+    jobs:
+      - build-frontend
+      - build-backend
