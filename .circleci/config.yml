@@ -270,7 +270,8 @@ jobs:
       - run:
           name: "Move inventory file into workspace"
           command: |
-            mkdir $WORKSPACE_DIR
+            # no error if existing, make parent directories as needed
+            mkdir --parents $WORKSPACE_DIR
             mv $PROJECT_DIR/.circleci/ansible/inventory.txt $WORKSPACE_DIR/inventory.txt
       - persist_to_workspace:
           root: /home/circleci/workspace
@@ -298,7 +299,8 @@ jobs:
       - run:
           name: "Fetch and save the static host of the current bucket"
           command: |
-            mkdir $WORKSPACE_DIR
+            # no error if existing, make parent directories as needed
+            mkdir --parents $WORKSPACE_DIR
             touch $WORKSPACE_DIR/websiteurl
             static_export_name=Udapeople-Frontend-$CUR_SHORT_HASH-WebsiteURL
             host=$(aws cloudformation list-exports \
@@ -311,6 +313,8 @@ jobs:
           name: "Save the old bucket name if it exist"
           shell: /bin/bash
           command: |
+            # no error if existing, make parent directories as needed
+            mkdir --parents $WORKSPACE_DIR
             touch $WORKSPACE_DIR/existbucket
             bucket_info=$(aws s3 ls s3://udapeople-frontend-$PRE_SHORT_HASH 2>&1)
             if echo $bucket_info | grep 'NoSuchBucket'
@@ -331,6 +335,28 @@ jobs:
       - delete_stack:
           stack_name: Udapeople-Frontend-${CUR_SHORT_HASH}
           when: "on_fail"
+
+  configure_infrastructure: 
+    docker:
+      - image: python:3.10.10-alpine3.17
+    steps:
+      # This command will pull all of the files into a directory called project which can be found at ~/project.
+      - checkout
+      # Export environment variable
+      - exports
+      - add_ssh_keys:
+          fingerprints: ["c2:84:20:b3:bc:15:1b:1c:2e:32:54:00:98:f8:7d:81"] 
+      - run:
+          name: "Install Ansible"
+          command: |
+            apk add --update ansible
+      - attach_workspace:
+          at: /home/circleci/workspace
+      - run:
+          name: Run Playbook and Configure server
+          command: |
+            cd $PROJECT_DIR/.circleci/ansible
+            ansible-playbook -i $WORKSPACE_DIR/inventory.txt configure-server.yml
 
   clean-up:
     executor: aws-cli/default
@@ -386,10 +412,18 @@ workflows:
               only:
                 - master
                 - "cicd-final-project"
+      - configure_infrastructure:
+          requires:
+            - "create-backend-infrastructure"
+          filters:
+            branches:
+              only:
+                - master
+                - "cicd-final-project"
       - clean-up:
           requires:
             - "create-frontend-infrastructure"
-            - "create-backend-infrastructure"
+            - "configure_infrastructure"
           filters:
             branches:
               only:
