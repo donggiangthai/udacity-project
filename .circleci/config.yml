@@ -260,22 +260,6 @@ jobs:
           stack_name: Udapeople-Backend-${CUR_SHORT_HASH}
           template_file: $TEMPLATE_ROOT_DIR/ec2-instances.yml
           parameter_overrides: file://$TEMPLATE_ROOT_DIR/ec2-instances-parameters.json
-      # Rollback if fail
-      - delete_stack:
-          stack_name: Udapeople-Backend-${CUR_SHORT_HASH}
-          when: "on_fail"
-
-  prepare-inventory:
-    executor: aws-cli/default
-    # Add steps to the job
-    # See: https://circleci.com/docs/configuration-reference/#steps
-    steps:
-      # This command will pull all of the files into a directory called project which can be found at ~/project.
-      - checkout
-      # Export environment variable
-      - exports
-      # Set up AWS Credentials
-      - aws-cli/setup
       - run:
           name: "Get backend server Public IP Address"
           command: |
@@ -325,15 +309,12 @@ jobs:
       - exports
       # Set up AWS Credentials
       - aws-cli/setup
-      # Within every build, we create a unique cloud formation stack for frontend and backend infrastructure
-      # And we didn't configure anything to use these stack, therefore we must clean them up automatically
-      # Otherwise, we have to do it manually, of course!
       # Remove the backend infrastructure
       - delete_stack:
-          stack_name: Udapeople-Backend-${CUR_SHORT_HASH}
+          stack_name: Udapeople-Backend-${PRE_SHORT_HASH}
       # Remove the frontend infrastructure
       - delete_stack:
-          stack_name: Udapeople-Frontend-${CUR_SHORT_HASH}
+          stack_name: Udapeople-Frontend-${PRE_SHORT_HASH}
 
 
 workflows:
@@ -357,11 +338,7 @@ workflows:
       - create-backend-infrastructure:
           requires:
             - "create-network-infrastructure"
-      - prepare-inventory:
-          requires:
-            - "create-backend-infrastructure"
       - create-frontend-infrastructure
       - clean-up:
           requires:
-            - "prepare-inventory"
             - "create-frontend-infrastructure"

@@ -2,7 +2,7 @@ Parameters:
     EnvironmentName:
         Type: String
         Description: "The environment name as a prefix"
-        Default: "ThaiDG-Udacity-ci-cd-exercise"
+        Default: "ThaiDG-Udacity-final-project"
     S3StaticHost:
         Type: String
         Description: "S3 static website endpoint"

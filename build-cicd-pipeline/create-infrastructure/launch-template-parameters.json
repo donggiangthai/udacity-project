@@ -9,11 +9,10 @@
 	},
 	{
 		"ParameterKey": "KeyPair",
-		"ParameterValue": "thaidg-ansible-key-pair"
+		"ParameterValue": "thaidg-udacity-key-pair"
 	},
 	{
 		"ParameterKey": "ImageId",
 		"ParameterValue": "thaidg-ami-ubuntu-22"
 	}
-
 ]
