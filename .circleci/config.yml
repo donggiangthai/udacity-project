@@ -277,6 +277,41 @@ jobs:
           stack_name: Udapeople-Backend-${CUR_SHORT_HASH}
           when: "on_fail"
 
+  run-migrations:
+    executor:
+      name: node/default
+      tag: "13.8.0"
+    steps:
+      # This command will pull all of the files into a directory called project which can be found at ~/project.
+      - checkout
+      # Export environment variable
+      - exports
+      - node/install-packages:
+          app-dir: /home/circleci/project/build-cicd-pipeline/final-project/backend
+      - run:
+          name: Run migrations
+          command: |
+            # Your code here
+            npm run migrations > migrations_dump.txt 
+          working_directory: /home/circleci/project/build-cicd-pipeline/final-project/backend
+      - run:
+          name: Send migration results to kvdb.io
+          command: |
+            # Your code here
+            if cat migrations_dump.txt | grep "has been executed successfully."
+            then
+              # If you are using kvdb.io, generate the bucket ID "TwJ62Z4vHFHQJwWJPic4s7" in your local terminal first
+              curl -d '1' https://kvdb.io/TwJ62Z4vHFHQJwWJPic4s7/migration_$CUR_SHORT_HASH
+            fi
+          working_directory: /home/circleci/project/build-cicd-pipeline/final-project/backend
+      # Rollback if fail
+      - delete_stack:
+          stack_name: Udapeople-Frontend-${CUR_SHORT_HASH}
+          when: "on_fail"
+      - delete_stack:
+          stack_name: Udapeople-Backend-${CUR_SHORT_HASH}
+          when: "on_fail"
+
   clean-up:
     executor: aws-cli/default
     steps:
@@ -331,6 +366,12 @@ workflows:
               only:
                 - master
                 - "cicd-final-project"
+      - create-frontend-infrastructure:
+          filters:
+            branches:
+              only:
+                - master
+                - "cicd-final-project"
       - create-backend-infrastructure:
           requires:
             - "create-network-infrastructure"
@@ -339,13 +380,15 @@ workflows:
               only:
                 - master
                 - "cicd-final-project"
-      - create-frontend-infrastructure:
+      - configure-infrastructure:
+          requires:
+            - "create-backend-infrastructure"
           filters:
             branches:
               only:
                 - master
                 - "cicd-final-project"
-      - configure-infrastructure:
+      - run-migrations:
           requires:
             - "create-backend-infrastructure"
           filters:
