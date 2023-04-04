@@ -54,6 +54,7 @@ commands:
               exit 1
             else
               aws cloudformation delete-stack --stack-name << parameters.stack_name >>
+              echo $stack_info
               aws cloudformation wait stack-delete-complete --stack-name $stack_info
               if [ "<< parameters.when >>" = "on_fail" ]
               then
@@ -86,40 +87,39 @@ commands:
             --capabilities "CAPABILITY_IAM" "CAPABILITY_NAMED_IAM"
 
 jobs:
-  build-frontend:
-    executor:
-      name: node/default
-      tag: "13.8.0"
-    steps:
-      # This command will pull all of the files into a directory called project which can be found at ~/project.
-      - checkout
-      # Export environment variable
-      - exports
-      - node/install-packages:
-          app-dir: $PROJECT_ROOT_DIR/frontend
-          cache-path: $PROJECT_ROOT_DIR/frontend/.npm
-      - node/run:
-          app-dir: $PROJECT_ROOT_DIR/frontend
-          npm-run: build
+  # build-frontend:
+  #   executor:
+  #     name: node/default
+  #     tag: "13.8.0"
+  #   steps:
+  #     # This command will pull all of the files into a directory called project which can be found at ~/project.
+  #     - checkout
+  #     # Export environment variable
+  #     - exports
+  #     - node/install-packages:
+  #         app-dir: /home/circleci/project/build-cicd-pipeline/final-project/frontend
+  #     - run: 
+  #         name: "Build Frontend"
+  #         command: |
+  #           npm run build
+  #         working_directory: /home/circleci/project/build-cicd-pipeline/final-project/frontend
   
-  build-backend:
-    docker:
-      # circleci/node is deprecated, use cimg/node instead
-      - image: cimg/node:13.8.0
-    steps:
-      - checkout
-      - exports
-      - restore_cache:
-          keys: [backend-build]
-      - run:
-          name: "Build backend"
-          command: |
-            cd $PROJECT_ROOT_DIR/backend
-            npm install
-            npm run build
-      - save_cache:
-          paths: [backend/node_modules]
-          key: backend-build
+  # build-backend:
+  #   executor:
+  #     name: node/default
+  #     tag: "13.8.0"
+  #   steps:
+  #     # This command will pull all of the files into a directory called project which can be found at ~/project.
+  #     - checkout
+  #     # Export environment variable
+  #     - exports
+  #     - node/install-packages:
+  #         app-dir: /home/circleci/project/build-cicd-pipeline/final-project/backend
+  #     - run:
+  #         name: "Build backend"
+  #         command: |
+  #           npm run build
+  #         working_directory: /home/circleci/project/build-cicd-pipeline/final-project/backend
 
   test-frontend:
     docker:
@@ -166,54 +166,46 @@ jobs:
           key: backend-build
 
   scan-frontend:
-    docker:
-      # circleci/node is deprecated, use cimg/node instead
-      - image: cimg/node:13.8.0
+    executor:
+      name: node/default
+      tag: "13.8.0"
     steps:
-      # Checkout code from git
+      # This command will pull all of the files into a directory called project which can be found at ~/project.
       - checkout
+      # Export environment variable
       - exports
-      # Restore from cache
-      - restore_cache:
-          keys: [frontend-build]
+      - node/install-packages:
+          app-dir: /home/circleci/project/build-cicd-pipeline/final-project/frontend
       # Your job code here
       - run:
           name: "Scan frontend"
           command: |
-            cd $PROJECT_ROOT_DIR/frontend
-            npm install
             npm audit fix --audit-level=critical --force
             # If the "npm audit fix" command above could not fix all critical vulnerabilities, try “npm audit fix --force” again
             npm audit fix --force
             npm audit --audit-level=critical
-      - save_cache:
-          paths: [frontend/node_modules]
-          key: frontend-build
+          working_directory: /home/circleci/project/build-cicd-pipeline/final-project/frontend
 
   scan-backend:
-    docker:
-      # circleci/node is deprecated, use cimg/node instead
-      - image: cimg/node:13.8.0
+    executor:
+      name: node/default
+      tag: "13.8.0"
     steps:
-      # Checkout code from git
+      # This command will pull all of the files into a directory called project which can be found at ~/project.
       - checkout
+      # Export environment variable
       - exports
-      # Restore from cache
-      - restore_cache:
-          keys: [backend-build]
+      - node/install-packages:
+          app-dir: /home/circleci/project/build-cicd-pipeline/final-project/backend
       # Your job code here
       - run:
           name: "Scan backend"
           command: |
-            cd $PROJECT_ROOT_DIR/backend
-            npm install
             npm audit fix --audit-level=critical --force
             # If the "npm audit fix" command above could not fix all critical vulnerabilities, try “npm audit fix --force” again
             npm audit fix --force
             npm audit --audit-level=critical
-      - save_cache:
-          paths: [backend/node_modules]
-          key: backend-build
+          working_directory: /home/circleci/project/build-cicd-pipeline/final-project/backend
 
   create-network-infrastructure:
     executor: aws-cli/default
@@ -335,7 +327,7 @@ jobs:
           stack_name: Udapeople-Frontend-${CUR_SHORT_HASH}
           when: "on_fail"
 
-  configure_infrastructure: 
+  configure-infrastructure: 
     executor: 
       name: python/default
       tag: "3.11.2"
@@ -383,17 +375,31 @@ jobs:
 workflows:
   final-project-workflows:
     jobs:
-      - build-frontend
-      - build-backend
-      - test-frontend:
+      - node/run:
+          name: build-frontend
+          app-dir: /home/circleci/project/build-cicd-pipeline/final-project/frontend
+          npm-run: build
+          version: "13.8.0"
+      - node/test:
+          name: test-frontend
+          app-dir: /home/circleci/project/build-cicd-pipeline/final-project/frontend
+          version: "13.8.0"
           requires:
             - "build-frontend"
-      - test-backend:
-          requires:
-            - "build-backend"
       - scan-frontend:
           requires:
             - "build-frontend"
+      - node/run:
+          name: build-backend
+          app-dir: /home/circleci/project/build-cicd-pipeline/final-project/backend
+          npm-run: build
+          version: "13.8.0"
+      - node/test:
+          name: test-backend
+          app-dir: /home/circleci/project/build-cicd-pipeline/final-project/backend
+          version: "13.8.0"
+          requires:
+            - "build-backend"
       - scan-backend:
           requires:
             - "build-backend"
@@ -417,7 +423,7 @@ workflows:
               only:
                 - master
                 - "cicd-final-project"
-      - configure_infrastructure:
+      - configure-infrastructure:
           requires:
             - "create-backend-infrastructure"
           filters:
@@ -428,7 +434,7 @@ workflows:
       - clean-up:
           requires:
             - "create-frontend-infrastructure"
-            - "configure_infrastructure"
+            - "configure-infrastructure"
           filters:
             branches:
               only:
