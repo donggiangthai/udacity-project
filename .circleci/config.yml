@@ -361,3 +361,7 @@ workflows:
           requires:
             - "create-backend-infrastructure"
       - create-frontend-infrastructure
+      - clean-up:
+          requires:
+            - "prepare-inventory"
+            - "create-frontend-infrastructure"
