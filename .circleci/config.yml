@@ -2,6 +2,7 @@ version: 2.1
 
 orbs:
   aws-cli: circleci/aws-cli@3.1.4
+  python: circleci/python@2.1.1
 
 commands:
   exports:
@@ -337,8 +338,9 @@ jobs:
           when: "on_fail"
 
   configure_infrastructure: 
-    docker:
-      - image: python:3.10.10-alpine3.17
+    executor: 
+      name: python/default
+      tag: "3.11.2"
     steps:
       # This command will pull all of the files into a directory called project which can be found at ~/project.
       - checkout
@@ -346,17 +348,15 @@ jobs:
       - exports
       - add_ssh_keys:
           fingerprints: ["c2:84:20:b3:bc:15:1b:1c:2e:32:54:00:98:f8:7d:81"] 
-      - run:
-          name: "Install Ansible"
-          command: |
-            apk add --update ansible
+      - python/install-packages:
+          args: ansible
+          pypi-cache: true
       - attach_workspace:
           at: /home/circleci/workspace
       - run:
           name: Run Playbook and Configure server
           command: |
-            cd $PROJECT_DIR/.circleci/ansible
-            ansible-playbook -i $WORKSPACE_DIR/inventory.txt configure-server.yml
+            ansible-playbook -i $WORKSPACE_DIR/inventory.txt $PROJECT_DIR/.circleci/ansible/configure-server.yml
 
   clean-up:
     executor: aws-cli/default
