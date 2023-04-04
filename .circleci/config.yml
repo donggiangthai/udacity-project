@@ -3,6 +3,7 @@ version: 2.1
 orbs:
   aws-cli: circleci/aws-cli@3.1.4
   python: circleci/python@2.1.1
+  node: circleci/node@5.1.0
 
 commands:
   exports:
@@ -86,23 +87,20 @@ commands:
 
 jobs:
   build-frontend:
-    docker:
-      # circleci/node is deprecated, use cimg/node instead
-      - image: cimg/node:13.8.0
+    executor:
+      name: node/default
+      tag: "13.8.0"
     steps:
+      # This command will pull all of the files into a directory called project which can be found at ~/project.
       - checkout
+      # Export environment variable
       - exports
-      - restore_cache:
-          keys: [frontend-build]
-      - run:
-          name: "Build frontend"
-          command: |
-            cd $PROJECT_ROOT_DIR/frontend
-            npm install
-            npm run build
-      - save_cache:
-          paths: [frontend/node_modules]
-          key: frontend-build
+      - node/install-packages:
+          app-dir: $PROJECT_ROOT_DIR/frontend
+          cache-path: $PROJECT_ROOT_DIR/frontend/.npm
+      - node/run:
+          app-dir: $PROJECT_ROOT_DIR/frontend
+          npm-run: build
   
   build-backend:
     docker:
@@ -357,6 +355,13 @@ jobs:
           name: Run Playbook and Configure server
           command: |
             ansible-playbook -i $WORKSPACE_DIR/inventory.txt $PROJECT_DIR/.circleci/ansible/configure-server.yml
+      # Rollback if fail
+      - delete_stack:
+          stack_name: Udapeople-Frontend-${CUR_SHORT_HASH}
+          when: "on_fail"
+      - delete_stack:
+          stack_name: Udapeople-Backend-${CUR_SHORT_HASH}
+          when: "on_fail"
 
   clean-up:
     executor: aws-cli/default
