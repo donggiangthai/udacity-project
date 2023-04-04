@@ -53,7 +53,7 @@ commands:
             else
               aws cloudformation delete-stack --stack-name << parameters.stack_name >>
               aws cloudformation wait stack-delete-complete --stack-name $stack_info
-              if [ "<< parameters.when >>" == "on_fail" ]
+              if [ "<< parameters.when >>" = "on_fail" ]
               then
                 echo "Roll back completed. Green environment destroyed."
                 exit 1
@@ -295,6 +295,38 @@ jobs:
           stack_name: Udapeople-Frontend-${CUR_SHORT_HASH}
           template_file: $TEMPLATE_ROOT_DIR/bucket.yml
           parameter_overrides: MyBucketName=udapeople-frontend-$CUR_SHORT_HASH
+      - run:
+          name: "Fetch and save the static host of the current bucket"
+          command: |
+            mkdir $WORKSPACE_DIR
+            touch $WORKSPACE_DIR/websiteurl
+            static_export_name=Udapeople-Frontend-$CUR_SHORT_HASH-WebsiteURL
+            host=$(aws cloudformation list-exports \
+            --query "Exports[?Name==\`$static_export_name\`].Value" \
+            --no-paginate --output text)
+            # Remove prefix ending in "//"
+            static_host=${host#*//}
+            echo $static_host > $WORKSPACE_DIR/websiteurl
+      - run:
+          name: "Save the old bucket name if it exist"
+          shell: /bin/bash
+          command: |
+            touch $WORKSPACE_DIR/existbucket
+            bucket_info=$(aws s3 ls s3://udapeople-frontend-$PRE_SHORT_HASH 2>&1)
+            if echo $bucket_info | grep 'NoSuchBucket'
+            then
+              echo "Old bucket doesn't exist"
+              echo "" > $WORKSPACE_DIR/existbucket
+            else
+              old_bucket_uri=s3://udapeople-frontend-$PRE_SHORT_HASH
+              echo "Old bucket uri: $old_bucket_uri"
+              echo $old_bucket_uri > $WORKSPACE_DIR/existbucket
+            fi
+      - persist_to_workspace:
+          root: /home/circleci/workspace
+          paths: 
+            - websiteurl
+            - existbucket
       # Rollback if fail
       - delete_stack:
           stack_name: Udapeople-Frontend-${CUR_SHORT_HASH}
@@ -334,11 +366,32 @@ workflows:
       - scan-backend:
           requires:
             - "build-backend"
-      - create-network-infrastructure
+      - create-network-infrastructure:
+          filters:
+            branches:
+              only:
+                - master
+                - "cicd-final-project"
       - create-backend-infrastructure:
           requires:
             - "create-network-infrastructure"
-      - create-frontend-infrastructure
+          filters:
+            branches:
+              only:
+                - master
+                - "cicd-final-project"
+      - create-frontend-infrastructure:
+          filters:
+            branches:
+              only:
+                - master
+                - "cicd-final-project"
       - clean-up:
           requires:
             - "create-frontend-infrastructure"
+            - "create-backend-infrastructure"
+          filters:
+            branches:
+              only:
+                - master
+                - "cicd-final-project"

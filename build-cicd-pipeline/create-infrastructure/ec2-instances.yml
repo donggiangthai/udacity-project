@@ -1,6 +1,6 @@
 Description: >
     ThaiDG
-    For creating the EC2 instances to exercise Ansible playbook
+    For creating the backend server of the final project
 
 Parameters:
     EnvironmentName:

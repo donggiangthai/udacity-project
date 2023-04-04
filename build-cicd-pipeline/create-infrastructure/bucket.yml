@@ -1,3 +1,7 @@
+Description: >
+    ThaiDG
+    For creating the frontend of the final project
+
 Parameters:
     # New Bucket name
     MyBucketName:

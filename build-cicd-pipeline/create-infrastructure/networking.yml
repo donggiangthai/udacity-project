@@ -1,6 +1,6 @@
 Description: >
     ThaiDG
-    For creating the network to exercise Ansible playbook
+    For creating the network of the final project
 
 Parameters:
     EnvironmentName:

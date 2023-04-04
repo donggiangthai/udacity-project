@@ -1,6 +1,6 @@
 Description: >
     ThaiDG
-    For creating the security to exercise Ansible playbook
+    For creating the security of the final project
 
 Parameters:
     EnvironmentName:
