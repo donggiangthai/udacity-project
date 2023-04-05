@@ -101,11 +101,11 @@ jobs:
       - run:
           name: Build front-end
           command: |
-            cd frontend
+            cd $CIRCLE_WORKING_DIRECTORY/frontend
             npm install
             npm run build
       - save_cache:
-          paths: [frontend/node_modules]
+          paths: [$CIRCLE_WORKING_DIRECTORY/frontend/node_modules]
           key: frontend-build
 
   build-backend:
@@ -122,11 +122,11 @@ jobs:
       - run:
           name: Back-end build
           command: |
-            cd backend
+            cd $CIRCLE_WORKING_DIRECTORY/backend
             npm install
             npm run build
       - save_cache:
-          paths: [backend/node_modules]
+          paths: [$CIRCLE_WORKING_DIRECTORY/backend/node_modules]
           key: backend-build
 
   scan-frontend:
@@ -145,7 +145,7 @@ jobs:
       - run:
           name: "Scan frontend"
           command: |
-            cd frontend
+            cd $CIRCLE_WORKING_DIRECTORY/frontend
             npm audit fix --audit-level=critical --force
             # If the "npm audit fix" command above could not fix all critical vulnerabilities, try “npm audit fix --force” again
             npm audit fix --force
@@ -167,7 +167,7 @@ jobs:
       - run:
           name: "Scan backend"
           command: |
-            cd backend
+            cd $CIRCLE_WORKING_DIRECTORY/backend
             npm audit fix --audit-level=critical --force
             # If the "npm audit fix" command above could not fix all critical vulnerabilities, try “npm audit fix --force” again
             npm audit fix --force
@@ -341,7 +341,7 @@ jobs:
           name: Run migrations
           command: |
             # Your code here
-            cd backend
+            cd $CIRCLE_WORKING_DIRECTORY/backend
             # Install dependencies
             npm install
             # Run and save the migration output
@@ -352,12 +352,11 @@ jobs:
           name: Send migration results to kvdb.io
           command: |
             # Your code here
-            if cat migrations_dump.txt | grep "has been executed successfully."
+            if cat $CIRCLE_WORKING_DIRECTORY/migrations_dump.txt | grep "has been executed successfully."
             then
               # If you are using kvdb.io, generate the bucket ID "TwJ62Z4vHFHQJwWJPic4s7" in your local terminal first
               curl -d '1' https://kvdb.io/TwJ62Z4vHFHQJwWJPic4s7/migration_$CUR_SHORT_HASH
             fi
-          working_directory: /home/circleci/project/build-cicd-pipeline/final-project/backend
       # Rollback if fail
       - run:
           name: "Install AWS CLI"
