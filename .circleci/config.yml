@@ -123,6 +123,17 @@ jobs:
             cd $PROJECT_ROOT_DIR/backend
             npm install
             npm run build
+            cd ..
+            # Compress the backend folder
+            tar -C backend -czvf artifact-backend.tar.gz .
+            # no error if existing, make parent directories as needed
+            mkdir --parents $WORKSPACE_DIR
+            # Move the compressed file to workspace folder
+            mv artifact-backend.tar.gz $WORKSPACE_DIR/artifact-backend.tar.gz
+      - persist_to_workspace:
+          root: /home/circleci/workspace
+          paths:
+            - "artifact-backend.tar.gz"
       - save_cache:
           paths: [/home/circleci/project/build-cicd-pipeline/final-project/backend/node_modules]
           key: backend-build
@@ -248,30 +259,25 @@ jobs:
           template_file: $TEMPLATE_ROOT_DIR/ec2-instances.yml
           parameter_overrides: file://$TEMPLATE_ROOT_DIR/ec2-instances-parameters.json
       - run:
-          name: "Get backend server Public IP Address"
-          command: |
-            aws ec2 describe-instances \
-            --query 'Reservations[*].Instances[*].PublicIpAddress' \
-            --filters "Name=tag:Project,Values=$PROJECT_TAG" \
-            --output text >> $PROJECT_DIR/.circleci/ansible/inventory.txt
-      - run:
-          name: "Move inventory file into workspace"
-          command: |
-            # no error if existing, make parent directories as needed
-            mkdir --parents $WORKSPACE_DIR
-            mv $PROJECT_DIR/.circleci/ansible/inventory.txt $WORKSPACE_DIR/inventory.txt
-      - run:
           name: "Get backend URL"
           command: |
             # no error if existing, make parent directories as needed
             mkdir --parents $WORKSPACE_DIR
+            # Create file
             touch $WORKSPACE_DIR/backendpublicdns
             backend_public_dns=Udapeople-Backend-$CUR_SHORT_HASH-PublicDNS
+            # Pull the export value
             host=$(aws cloudformation list-exports \
             --query "Exports[?Name==\`$backend_public_dns\`].Value" \
             --no-paginate --output text)
-            API_URL="http://${backend_public_dns}:3030"
+            # Append the DNS to the inventory file
+            echo $host >> $PROJECT_DIR/.circleci/ansible/inventory.txt
+            # Move to workspace
+            mv $PROJECT_DIR/.circleci/ansible/inventory.txt $WORKSPACE_DIR/inventory.txt
+            # Setup API_URL for frontend to use
+            API_URL="http://${host}:3030"
             echo "${API_URL}"
+            # Store in workspace
             echo $API_URL > $WORKSPACE_DIR/backendpublicdns
       - persist_to_workspace:
           root: /home/circleci/workspace
@@ -484,6 +490,47 @@ jobs:
             npm install
             # Revert migration on fail
             npm run migrations:revert
+          when: "on_fail"
+      - delete_stack:
+          stack_name: Udapeople-Frontend-${CUR_SHORT_HASH}
+          when: "on_fail"
+      - delete_stack:
+          stack_name: Udapeople-Backend-${CUR_SHORT_HASH}
+          when: "on_fail"
+
+  deploy-backend:
+    executor: 
+      name: python/default
+      tag: "3.11.2"
+    steps:
+      # This command will pull all of the files into a directory called project which can be found at ~/project.
+      - checkout
+      # Export environment variable
+      - exports
+      - add_ssh_keys:
+          fingerprints: ["c2:84:20:b3:bc:15:1b:1c:2e:32:54:00:98:f8:7d:81"]
+      - python/install-packages:
+          args: ansible
+      - attach_workspace:
+          at: /home/circleci/workspace
+      - run:
+          name: Deploy backend
+          command: |
+            # Move the compressed file to ansible folder
+            # no error if existing, make parent directories as needed
+            mkdir --parents $PROJECT_DIR/.circleci/ansible/roles/deploy/files
+            mv $WORKSPACE_DIR/artifact-backend.tar.gz $PROJECT_DIR/.circleci/ansible/roles/deploy/files/artifact-backend.tar.gz
+      - run:
+          name: "Ansible play book for deploy backend"
+          command: |
+            ansible-playbook -i $WORKSPACE_DIR/inventory.txt $PROJECT_DIR/.circleci/ansible/deploy-backend.yml
+      # Rollback if fail
+      - run:
+          name: "Install AWS CLI"
+          command: |
+            curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+            unzip awscliv2.zip
+            sudo ./aws/install
           when: "on_fail"
       - delete_stack:
           stack_name: Udapeople-Frontend-${CUR_SHORT_HASH}
