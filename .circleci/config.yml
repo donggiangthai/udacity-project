@@ -517,6 +517,7 @@ jobs:
           name: Deploy backend
           command: |
             # Move the compressed file to ansible folder
+            ls -la $WORKSPACE_DIR
             # no error if existing, make parent directories as needed
             mkdir --parents $PROJECT_DIR/.circleci/ansible/roles/deploy/files
             mv $WORKSPACE_DIR/artifact-backend.tar.gz $PROJECT_DIR/.circleci/ansible/roles/deploy/files/artifact-backend.tar.gz
@@ -619,6 +620,7 @@ workflows:
                 - "cicd-final-project"
       - deploy-backend:
           requires:
+            - "build-backend"
             - "configure-infrastructure"
           filters:
             branches:
@@ -628,7 +630,7 @@ workflows:
       - clean-up:
           requires:
             - "deploy-frontend"
-            - "configure-infrastructure"
+            - "deploy-backend"
           filters:
             branches:
               only:
