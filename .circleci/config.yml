@@ -617,6 +617,14 @@ workflows:
               only:
                 - master
                 - "cicd-final-project"
+      - deploy-backend:
+          requires:
+            - "configure-infrastructure"
+          filters:
+            branches:
+              only:
+                - master
+                - "cicd-final-project"
       - clean-up:
           requires:
             - "deploy-frontend"
