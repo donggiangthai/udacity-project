@@ -276,6 +276,7 @@ jobs:
             curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
             unzip awscliv2.zip
             sudo ./aws/install
+          when: "on_fail"
       - delete_stack:
           stack_name: Udapeople-Frontend-${CUR_SHORT_HASH}
           when: "on_fail"
@@ -319,6 +320,7 @@ jobs:
             curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
             unzip awscliv2.zip
             sudo ./aws/install
+          when: "on_fail"
       - delete_stack:
           stack_name: Udapeople-Frontend-${CUR_SHORT_HASH}
           when: "on_fail"
