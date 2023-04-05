@@ -378,14 +378,27 @@ jobs:
             # Cat file
             cat migrations_dump.txt
       - run:
-          name: Send migration results to kvdb.io
+          name: "Install redis-cli"
+          command: |
+            cd ~/tmp
+            wget http://download.redis.io/redis-stable.tar.gz
+            tar xvzf redis-stable.tar.gz
+            cd redis-stable
+            make
+            sudo cp src/redis-cli /usr/local/bin/
+            sudo chmod 755 /usr/local/bin/redis-cli
+      - run:
+          name: Send migration results to redis-cloud
           command: |
             # Your code here
             cd $PROJECT_ROOT_DIR/backend
             if cat migrations_dump.txt | grep "has been executed successfully."
             then
-              # If you are using kvdb.io, generate the bucket ID "TwJ62Z4vHFHQJwWJPic4s7" in your local terminal first
-              curl -d '1' https://kvdb.io/TwJ62Z4vHFHQJwWJPic4s7/migration_$CUR_SHORT_HASH
+              redis-cli \
+                --host redis-19031.c252.ap-southeast-1-1.ec2.cloud.redislabs.com \
+                --port 19031 \
+                --auth $REDIS_CLI_PASSWORD \
+                SET migration_${CUR_SHORT_HASH} 1
             fi
       # Rollback if fail
       - run:
