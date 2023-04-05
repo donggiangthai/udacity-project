@@ -12,7 +12,7 @@ Resources:
         Type: AWS::EC2::Instance
         Properties:
             NetworkInterfaces:
-                -   DeviceIndex: 0
+                -   DeviceIndex: "0"
                     SubnetId:
                         Fn::ImportValue:
                             Fn::Join:
@@ -56,3 +56,15 @@ Outputs:
                 - ""
                 -   - "ubuntu@"
                     -   Fn::GetAtt: "EC2Instance1a.PublicIp"
+    EC2InstancePublicDNS:
+        Description: "The instance public DNS name"
+        Value:
+            Fn::GetAtt:
+                - EC2Instance1a
+                - PublicDnsName
+        Export:
+            Name:
+                Fn::Join:
+                    - ""
+                    -   -   Ref: "AWS::StackName"
+                        - "-PublicDNS"

@@ -260,10 +260,24 @@ jobs:
             # no error if existing, make parent directories as needed
             mkdir --parents $WORKSPACE_DIR
             mv $PROJECT_DIR/.circleci/ansible/inventory.txt $WORKSPACE_DIR/inventory.txt
+      - run:
+          name: "Get backend URL"
+          command: |
+            # no error if existing, make parent directories as needed
+            mkdir --parents $WORKSPACE_DIR
+            touch $WORKSPACE_DIR/backendpublicdns
+            backend_public_dns=Udapeople-Backend-$CUR_SHORT_HASH-PublicDNS
+            host=$(aws cloudformation list-exports \
+            --query "Exports[?Name==\`$backend_public_dns\`].Value" \
+            --no-paginate --output text)
+            API_URL="http://${backend_public_dns}:3030"
+            echo "${API_URL}"
+            echo $API_URL > $WORKSPACE_DIR/backendpublicdns
       - persist_to_workspace:
           root: /home/circleci/workspace
           paths:
             - "inventory.txt"
+            - "backendpublicdns"
       # Rollback if fail
       - delete_stack:
           stack_name: Udapeople-Backend-${CUR_SHORT_HASH}
@@ -380,6 +394,8 @@ jobs:
       - run:
           name: "Install redis-cli"
           command: |
+            # no error if existing, make parent directories as needed
+            mkdir --parents ~/tmp
             cd ~/tmp
             wget http://download.redis.io/redis-stable.tar.gz
             tar xvzf redis-stable.tar.gz
@@ -401,6 +417,60 @@ jobs:
                 SET migration_${CUR_SHORT_HASH} 1
             fi
       # Rollback if fail
+      - run:
+          name: "Install AWS CLI"
+          command: |
+            curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+            unzip awscliv2.zip
+            sudo ./aws/install
+          when: "on_fail"
+      - delete_stack:
+          stack_name: Udapeople-Frontend-${CUR_SHORT_HASH}
+          when: "on_fail"
+      - delete_stack:
+          stack_name: Udapeople-Backend-${CUR_SHORT_HASH}
+          when: "on_fail"
+
+  deploy-frontend:
+    docker:
+      - image: circleci/node:13.8.0
+    steps:
+      # This command will pull all of the files into a directory called project which can be found at ~/project.
+      - checkout
+      # Export environment variable
+      - exports
+      - attach_workspace:
+          at: /home/circleci/workspace
+      - restore_cache:
+          keys: [frontend-build]
+      - run:
+          name: Deploy frontend objects
+          command: |
+            cd $PROJECT_ROOT_DIR/frontend
+            # Create .env file
+            touch .env
+            # Get backend URL
+            API_URL=$(cat $WORKSPACE_DIR/backendpublicdns)
+            echo API_URL="$API_URL" > .env
+            # Install node modules
+            npm install
+            # Build project
+            npm run build
+            # Compress the build artifact
+            tar -czvf "artifact-$CUR_SHORT_HASH.tar.gz" dist
+            # Deploy frontend artifact
+            aws s3 sync . s3://udapeople-frontend-$CUR_SHORT_HASH --delete
+      # Here's where you will add some code to rollback on failure
+      # Rollback if fail
+      - run:
+          name: "Revert migration on fail"
+          command: |
+            cd $PROJECT_ROOT_DIR/backend
+            # Install dependencies
+            npm install
+            # Revert migration on fail
+            npm run migrations:revert
+          when: "on_fail"
       - run:
           name: "Install AWS CLI"
           command: |
@@ -478,9 +548,16 @@ workflows:
                 - master
                 - "cicd-final-project"
       - run-migrations:
+          filters:
+            branches:
+              only:
+                - master
+                - "cicd-final-project"
+      - deploy-frontend:
           requires:
             - "create-frontend-infrastructure"
-            - "configure-infrastructure"
+            - "create-backend-infrastructure"
+            - "run-migrations"
           filters:
             branches:
               only:
@@ -488,7 +565,7 @@ workflows:
                 - "cicd-final-project"
       - clean-up:
           requires:
-            - "run-migrations"
+            - "deploy-frontend"
           filters:
             branches:
               only:
