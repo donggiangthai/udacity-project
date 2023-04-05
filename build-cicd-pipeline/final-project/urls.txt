@@ -1,1 +1,2 @@
 URL01: https://github.com/donggiangthai/udacity-project/tree/cicd-final-project
+URL02: http://udapeople-frontend-fe090c8.s3-website-us-east-1.amazonaws.com
