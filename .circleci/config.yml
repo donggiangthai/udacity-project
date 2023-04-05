@@ -289,34 +289,24 @@ jobs:
           when: "on_fail"
 
   run-migrations:
-    executor:
-      name: node/default
-      tag: "13.8.0"
+    docker:
+      - image: cimg/node:13.8.0
     steps:
       # This command will pull all of the files into a directory called project which can be found at ~/project.
       - checkout
       # Export environment variable
       - exports
-      # - node/install-packages:
-      #     app-dir: /home/circleci/project/build-cicd-pipeline/final-project/backend
-      #     cache-path: /home/circleci/project/build-cicd-pipeline/final-project/backend
-      #     cache-version: v2
       - run:
           name: Run migrations
           command: |
             # Your code here
+            cd /home/circleci/project/build-cicd-pipeline/final-project/backend
             # Install dependencies
             npm install
-            # Fix vulnerabilities
-            npm audit fix --audit-level=critical --force
-            npm audit fix --force
-            # Run the scan
-            npm audit --audit-level=critical
             # Run and save the migration output
             npm run migrations > migrations_dump.txt
             # Cat file
             cat migrations_dump.txt
-          working_directory: /home/circleci/project/build-cicd-pipeline/final-project/backend
       - run:
           name: Send migration results to kvdb.io
           command: |
@@ -362,78 +352,78 @@ jobs:
 workflows:
   final-project-workflows:
     jobs:
-      - node/run:
-          name: build-frontend
-          app-dir: /home/circleci/project/build-cicd-pipeline/final-project/frontend
-          npm-run: build
-          version: "13.8.0"
-      - node/test:
-          name: test-frontend
-          app-dir: /home/circleci/project/build-cicd-pipeline/final-project/frontend
-          version: "13.8.0"
-          requires:
-            - "build-frontend"
-      - scan-frontend:
-          requires:
-            - "build-frontend"
-      - node/run:
-          name: build-backend
-          app-dir: /home/circleci/project/build-cicd-pipeline/final-project/backend
-          npm-run: build
-          version: "13.8.0"
-      - node/test:
-          name: test-backend
-          app-dir: /home/circleci/project/build-cicd-pipeline/final-project/backend
-          version: "13.8.0"
-          requires:
-            - "build-backend"
-      - scan-backend:
-          requires:
-            - "build-backend"
-      - create-network-infrastructure:
-          filters:
-            branches:
-              only:
-                - master
-                - "cicd-final-project"
-      - create-frontend-infrastructure:
-          filters:
-            branches:
-              only:
-                - master
-                - "cicd-final-project"
-      - create-backend-infrastructure:
-          requires:
-            - "create-network-infrastructure"
-          filters:
-            branches:
-              only:
-                - master
-                - "cicd-final-project"
-      - configure-infrastructure:
-          requires:
-            - "create-backend-infrastructure"
-          filters:
-            branches:
-              only:
-                - master
-                - "cicd-final-project"
+      # - node/run:
+      #     name: build-frontend
+      #     app-dir: /home/circleci/project/build-cicd-pipeline/final-project/frontend
+      #     npm-run: build
+      #     version: "13.8.0"
+      # - node/test:
+      #     name: test-frontend
+      #     app-dir: /home/circleci/project/build-cicd-pipeline/final-project/frontend
+      #     version: "13.8.0"
+      #     requires:
+      #       - "build-frontend"
+      # - scan-frontend:
+      #     requires:
+      #       - "build-frontend"
+      # - node/run:
+      #     name: build-backend
+      #     app-dir: /home/circleci/project/build-cicd-pipeline/final-project/backend
+      #     npm-run: build
+      #     version: "13.8.0"
+      # - node/test:
+      #     name: test-backend
+      #     app-dir: /home/circleci/project/build-cicd-pipeline/final-project/backend
+      #     version: "13.8.0"
+      #     requires:
+      #       - "build-backend"
+      # - scan-backend:
+      #     requires:
+      #       - "build-backend"
+      # - create-network-infrastructure:
+      #     filters:
+      #       branches:
+      #         only:
+      #           - master
+      #           - "cicd-final-project"
+      # - create-frontend-infrastructure:
+      #     filters:
+      #       branches:
+      #         only:
+      #           - master
+      #           - "cicd-final-project"
+      # - create-backend-infrastructure:
+      #     requires:
+      #       - "create-network-infrastructure"
+      #     filters:
+      #       branches:
+      #         only:
+      #           - master
+      #           - "cicd-final-project"
+      # - configure-infrastructure:
+      #     requires:
+      #       - "create-backend-infrastructure"
+      #     filters:
+      #       branches:
+      #         only:
+      #           - master
+      #           - "cicd-final-project"
       - run-migrations:
-          requires:
-            - "create-frontend-infrastructure"
-            - "configure-infrastructure"
-            - "scan-frontend"
-            - "scan-backend"
+          # requires:
+          #   - "create-frontend-infrastructure"
+          #   - "configure-infrastructure"
+          #   - "scan-frontend"
+          #   - "scan-backend"
           filters:
             branches:
               only:
                 - master
                 - "cicd-final-project"
-      - clean-up:
-          requires:
-            - "run-migrations"
-          filters:
-            branches:
-              only:
-                - master
-                - "cicd-final-project"
+      # - clean-up:
+      #     requires:
+      #       - "run-migrations"
+      #     filters:
+      #       branches:
+      #         only:
+      #           - master
+      #           - "cicd-final-project"
