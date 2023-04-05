@@ -473,7 +473,7 @@ jobs:
             # Compress the build artifact
             tar -czvf "artifact-$CUR_SHORT_HASH.tar.gz" dist
             # Deploy frontend artifact
-            aws s3 sync . s3://udapeople-frontend-$CUR_SHORT_HASH --delete
+            aws s3 sync dist s3://udapeople-frontend-$CUR_SHORT_HASH --delete
       # Here's where you will add some code to rollback on failure
       # Rollback if fail
       - run:
