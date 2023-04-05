@@ -411,12 +411,20 @@ jobs:
             if cat migrations_dump.txt | grep "has been executed successfully."
             then
               redis-cli \
-                --host redis-19031.c252.ap-southeast-1-1.ec2.cloud.redislabs.com \
-                --port 19031 \
-                --auth $REDIS_CLI_PASSWORD \
-                SET migration_${CUR_SHORT_HASH} 1
+                -h redis-19031.c252.ap-southeast-1-1.ec2.cloud.redislabs.com \
+                -p 19031 \
+                --user $REDIS_CLI_USERNAME \
+                --pass $REDIS_CLI_PASSWORD \
+              SET migration_${CUR_SHORT_HASH} 1
             fi
       # Rollback if fail
+      - run:
+          name: "Revert migration on fail"
+          command: |
+            cd $PROJECT_ROOT_DIR/backend
+            # Revert migration
+            npm run migrations:revert
+          when: "on_fail"
       - run:
           name: "Install AWS CLI"
           command: |
@@ -566,6 +574,7 @@ workflows:
       - clean-up:
           requires:
             - "deploy-frontend"
+            - "configure-infrastructure"
           filters:
             branches:
               only:
