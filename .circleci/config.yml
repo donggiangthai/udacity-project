@@ -98,6 +98,8 @@ jobs:
       - exports
       - node/install-packages:
           app-dir: /home/circleci/project/build-cicd-pipeline/final-project/frontend
+          cache-path: /home/circleci/project/build-cicd-pipeline/final-project/frontend
+          cache-version: v2
       # Your job code here
       - run:
           name: "Scan frontend"
@@ -119,6 +121,8 @@ jobs:
       - exports
       - node/install-packages:
           app-dir: /home/circleci/project/build-cicd-pipeline/final-project/backend
+          cache-path: /home/circleci/project/build-cicd-pipeline/final-project/backend
+          cache-version: v2
       # Your job code here
       - run:
           name: "Scan backend"
@@ -295,6 +299,8 @@ jobs:
       - exports
       - node/install-packages:
           app-dir: /home/circleci/project/build-cicd-pipeline/final-project/backend
+          cache-path: /home/circleci/project/build-cicd-pipeline/final-project/backend
+          cache-version: v2
       - run:
           name: Run migrations
           command: |
@@ -409,6 +415,7 @@ workflows:
           requires:
             - "create-frontend-infrastructure"
             - "configure-infrastructure"
+            - "scan-frontend"
             - "scan-backend"
           filters:
             branches:
