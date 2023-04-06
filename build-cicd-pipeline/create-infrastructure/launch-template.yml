@@ -92,5 +92,5 @@ Outputs:
                 Fn::Join:
                     - ""
                     -   - !Ref EnvironmentName
-                        - "-launch-template-version"
+                        - "-launch-template-version-"
                         -   Ref: "AWS::Region"
