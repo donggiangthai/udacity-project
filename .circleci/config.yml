@@ -743,6 +743,30 @@ jobs:
       - destroy_environment:
           stack_name: Udapeople-Backend-$CUR_SHORT_HASH
 
+  promote-to-production:
+    executor: aws-cli/default
+    steps:
+      # This command will pull all of the files into a directory called project which can be found at ~/project.
+      - checkout
+      # Export environment variable
+      - exports
+      # Set up AWS Credentials
+      - aws-cli/setup
+      - attach_workspace:
+          at: ~/
+      - deploy_stack:
+          stack_name: "production-distro"
+          template_file: "$CIRCLE_WORKING_DIRECTORY/$TEMPLATE_ROOT_DIR/cloudfront.yml"
+          parameter_overrides: "S3StaticHost=$(cat ~/websiteurl)"
+      # Rollback if fail
+      - revert-migrations:
+          migrations-key: migration_$CUR_SHORT_HASH
+      - destroy_environment:
+          stack_name: Udapeople-Frontend-$CUR_SHORT_HASH
+          bucket_name: udapeople-frontend-$CUR_SHORT_HASH
+      - destroy_environment:
+          stack_name: Udapeople-Backend-$CUR_SHORT_HASH
+
   clean-up:
     executor: aws-cli/default
     steps:
@@ -752,6 +776,22 @@ jobs:
       - exports
       # Set up AWS Credentials
       - aws-cli/setup
+      - run:
+          name: "Fetch stacks and save the old stack name"
+          command: |
+            # Fetch the stack names
+            export STACKS=(
+              $(aws cloudformation list-stacks \
+                  --query "StackSummaries[*].StackName" \
+                  --stack-status-filter CREATE_COMPLETE \
+                  --no-paginate --output text
+              )
+            )
+            echo Stack names: "${STACKS[@]}"
+            for stack in ${STACKS[@]}
+            do
+              echo $stack
+            done
       # Remove the backend infrastructure
       - destroy_environment:
           stack_name: Udapeople-Backend-$CUR_SHORT_HASH
@@ -849,9 +889,17 @@ workflows:
               only:
                 - master
                 - "cicd-final-project"
-      - clean-up:
+      - promote-to-production:
           requires:
             - "smoke-test"
+          filters:
+            branches:
+              only:
+                - master
+                - "cicd-final-project"
+      - clean-up:
+          requires:
+            - "promote-to-production"
           filters:
             branches:
               only:
