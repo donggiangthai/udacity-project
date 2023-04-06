@@ -134,6 +134,11 @@ commands:
           name: "Install AWS CLI"
           when: << parameters.when >>
           command: |
+            if aws --version | grep "aws-cli/" > /dev/null
+            then
+              echo "AWS CLI is already installed, skipping installation."
+              exit 0
+            fi
             curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
             unzip awscliv2.zip
             sudo ./aws/install
@@ -172,7 +177,7 @@ commands:
       - run:
           name: "Empty << parameters.bucket_name >> bucket"
           when: << parameters.when >>
-          shell: /bin/sh
+          shell: /bin/bash
           command: |
             bucket_name="<< parameters.bucket_name >>"
 
@@ -193,7 +198,7 @@ commands:
       - run:
           name: "Delete << parameters.stack_name >> stack"
           when: << parameters.when >>
-          shell: /bin/sh
+          shell: /bin/bash
           command: |
             # Get stack id for the delete_stack waiter
             stack_info=$(aws cloudformation describe-stacks --stack-name << parameters.stack_name >> --query "Stacks[*] | [0].StackId" 2>&1)
@@ -203,7 +208,7 @@ commands:
               echo $stack_info
               exit 0
             fi
-            if echo $stack_info | grep 'ValidationError'
+            if echo $stack_info | grep 'ValidationError' > /dev/null
             then
               echo $stack_info
               exit 1
@@ -492,7 +497,7 @@ jobs:
             mkdir --parents $WORKSPACE_DIR
             touch $WORKSPACE_DIR/existbucket
             bucket_info=$(aws s3 ls s3://udapeople-frontend-$PRE_SHORT_HASH 2>&1)
-            if echo $bucket_info | grep 'NoSuchBucket'
+            if echo $bucket_info | grep 'NoSuchBucket' > /dev/null
             then
               echo "Old bucket doesn't exist"
               echo "" > $WORKSPACE_DIR/existbucket
@@ -580,6 +585,7 @@ jobs:
                 --pass $REDIS_CLI_PASSWORD \
               SET migration_${CUR_SHORT_HASH} 1
             fi
+            echo "No migration has been executed."
       # Rollback if fail
       - revert-migrations:
           migrations-key: migration_$CUR_SHORT_HASH
@@ -686,7 +692,7 @@ jobs:
             API_URL=$(cat $WORKSPACE_DIR/backendpublicdns)
             echo $API_URL
             test_result=$(curl "$API_URL/api/status")
-            if echo $test_result | grep "ok" > /dev/null
+            if echo $test_result | grep "ok"
             then
               echo "Backend test passed"
               echo $test_result
