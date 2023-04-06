@@ -810,6 +810,7 @@ jobs:
                   echo "Backend stack is $stack"
                   echo $stack > $WORKSPACE_DIR/destroybackendstack
                 fi
+              fi
             done
       # Remove the backend infrastructure
       - destroy_environment:
