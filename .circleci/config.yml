@@ -84,7 +84,7 @@ commands:
               echo "No migration to revert"
               exit 0
             fi
-            
+
             cd $PROJECT_ROOT_DIR/backend
             # Install dependencies
             npm install
@@ -122,10 +122,10 @@ commands:
           the environment variable you will use to hold this
           value, i.e. AWS_SECRET_ACCESS_KEY.
         type: env_var_name
-        profile-name:
-          default: default
-          description: Profile name to be configured.
-          type: string
+      profile-name:
+        default: default
+        description: Profile name to be configured.
+        type: string
     steps:
       - run:
           name: "Install AWS CLI"
