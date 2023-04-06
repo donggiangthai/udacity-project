@@ -80,7 +80,7 @@ Outputs:
                 Fn::Join:
                     - ""
                     -   - !Ref EnvironmentName
-                        - "-launch-template-id"
+                        - "-launch-template-id-"
                         -   Ref: "AWS::Region"
 
     LaunchTemplateVersion:

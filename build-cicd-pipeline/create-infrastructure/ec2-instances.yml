@@ -27,14 +27,14 @@ Resources:
                         Fn::Join:
                             - ""
                             -   - !Ref EnvironmentName
-                                - "-launch-template-id"
+                                - "-launch-template-id-"
                                 -   Ref: "AWS::Region"
                 Version:
                     Fn::ImportValue:
                         Fn::Join:
                             - ""
                             -   - !Ref EnvironmentName
-                                - "-launch-template-version"
+                                - "-launch-template-version-"
                                 -   Ref: "AWS::Region"
             Tags:
                 -   Key: "Name"
