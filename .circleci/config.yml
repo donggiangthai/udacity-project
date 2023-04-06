@@ -708,7 +708,7 @@ jobs:
             API_URL=$(cat $WORKSPACE_DIR/backendpublicdns)
             echo $API_URL
             # When the backend server is not ready, let retry upto 30mins
-            test_result=$(curl "$API_URL/api/status" --retry-connrefused --retry-delay 5 --retry-max-time 360)
+            test_result=$(curl --retry-connrefused --retry-delay 5 --retry-max-time 360 "$API_URL/api/status")
             if echo $test_result | grep "ok" > /dev/null
             then
               echo "Backend test passed"
