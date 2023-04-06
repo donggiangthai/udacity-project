@@ -1,9 +1,7 @@
 version: 2.1
 
 orbs:
-  aws-cli: circleci/aws-cli@3.1.4
-  python: circleci/python@2.1.1
-  node: circleci/node@5.1.0
+  aws-cli: circleci/aws-cli@3.1.5
 
 commands:
   exports:
@@ -26,23 +24,177 @@ commands:
             echo 'export TEMPLATE_ROOT_DIR="/home/circleci/project/build-cicd-pipeline/create-infrastructure"' >> "$BASH_ENV"
             echo 'export PROJECT_TAG="ThaiDG-Udacity-final-project"' >> "$BASH_ENV"
 
-  delete_stack:
+  revert-migrations:
+    description: "Revert last migrations"
+    parameters:
+      migrations-key:
+        type: string
+        default: ""
+      redis-cli-host:
+        type: env_var_name
+        default: REDIS_CLI_HOST
+      redis-cli-port:
+        type: env_var_name
+        default: REDIS_CLI_PORT
+      redis-cli-username:
+        type: env_var_name
+        default: REDIS_CLI_USERNAME
+      redis-cli-password:
+        type: env_var_name
+        default: REDIS_CLI_PASSWORD
+    steps:
+      - run:
+          name: "Install redis-cli"
+          when: "on_fail"
+          command: |
+            # no error if existing, make parent directories as needed
+            mkdir --parents ~/tmp
+            cd ~/tmp
+            # Download and install redis-cli
+            wget http://download.redis.io/redis-stable.tar.gz
+            tar xvzf redis-stable.tar.gz
+            cd redis-stable
+            make
+            # Copy to bin and change mode
+            sudo cp src/redis-cli /usr/local/bin/
+            sudo chmod 755 /usr/local/bin/redis-cli
+      - run:
+          name: "Revert migrations if fail"
+          when: "on_fail"
+          environment:
+            PARAM_REDIS_CLI_HOST: <<parameters.redis-cli-host>>
+            PARAM_REDIS_CLI_PORT: <<parameters.redis-cli-port>>
+            PARAM_REDIS_CLI_USERNAME: <<parameters.redis-cli-username>>
+            PARAM_REDIS_CLI_PASSWORD: <<parameters.redis-cli-password>>
+            PARAM_MIGRATIONS_KEY: <<parameters.migrations-key>>
+          command: >
+            #!/bin/sh
+            
+            SUCCESS=$(
+              redis-cli \
+                -h $PARAM_REDIS_CLI_HOST \
+                -p $PARAM_REDIS_CLI_PORT \
+                --user $PARAM_REDIS_CLI_USERNAME \
+                --pass $PARAM_REDIS_CLI_PASSWORD \
+              GET $PARAM_MIGRATIONS_KEY
+            )
+
+            if [[ -z $SUCCESS ]]
+            then
+              echo "No migration to revert"
+              exit 0
+            fi
+            
+            cd $PROJECT_ROOT_DIR/backend
+            # Install dependencies
+            npm install
+            # Revert migration on fail
+            npm run migrations:revert
+
+  destroy_environment:
     parameters:
       stack_name:
         type: string
+      bucket_name:
+        type: string
+        default: ""
       when:
-        default: "on_success"
+        default: "on_fail"
         type: enum
         enum: ["always", "on_success", "on_fail"]
+      aws-access-key-id:
+        default: AWS_ACCESS_KEY_ID
+        description: >
+          AWS access key id for IAM role. Set this to the name of
+          the environment variable you will use to hold this
+          value, i.e. AWS_ACCESS_KEY.
+        type: env_var_name
+      aws-region:
+        default: AWS_DEFAULT_REGION
+        description: >
+          Env var of AWS region to operate in
+          (defaults to AWS_DEFAULT_REGION)
+        type: env_var_name
+      aws-secret-access-key:
+        default: AWS_SECRET_ACCESS_KEY
+        description: >
+          AWS secret key for IAM role. Set this to the name of
+          the environment variable you will use to hold this
+          value, i.e. AWS_SECRET_ACCESS_KEY.
+        type: env_var_name
+        profile-name:
+          default: default
+          description: Profile name to be configured.
+          type: string
     steps:
       - run:
-          name: "Delete << parameters.stack_name >> stack"
-          shell: /bin/bash
+          name: "Install AWS CLI"
           when: << parameters.when >>
+          command: |
+            curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+            unzip awscliv2.zip
+            sudo ./aws/install
+      - run:
+          name: "Configure AWS Access Key ID"
+          environment:
+            PARAM_AWS_CLI_ACCESS_KEY_ID: <<parameters.aws-access-key-id>>
+            PARAM_AWS_CLI_SECRET_ACCESS_KEY: <<parameters.aws-secret-access-key>>
+            PARAM_AWS_CLI_REGION: <<parameters.aws-region>>
+            PARAM_AWS_CLI_PROFILE_NAME: <<parameters.profile-name>>
+          when: << parameters.when >>
+          command: >
+            #!/bin/sh
+            PARAM_AWS_CLI_ACCESS_KEY_ID=$(eval echo "\$$PARAM_AWS_CLI_ACCESS_KEY_ID")
+
+            PARAM_AWS_CLI_SECRET_ACCESS_KEY=$(eval echo "\$$PARAM_AWS_CLI_SECRET_ACCESS_KEY")
+
+            PARAM_AWS_CLI_REGION=$(eval echo "\$$PARAM_AWS_CLI_REGION")
+
+            if [ -z "$PARAM_AWS_CLI_ACCESS_KEY_ID" ] || [ -z "${PARAM_AWS_CLI_SECRET_ACCESS_KEY}" ] 
+            then 
+                echo "Cannot configure profile. AWS access key id and AWS secret access key must be provided."
+                exit 1
+            fi
+
+            aws configure set \
+              aws_access_key_id "$PARAM_AWS_CLI_ACCESS_KEY_ID" \
+              --profile "$PARAM_AWS_CLI_PROFILE_NAME"
+
+            aws configure set \
+              aws_secret_access_key "$PARAM_AWS_CLI_SECRET_ACCESS_KEY" \
+              --profile "$PARAM_AWS_CLI_PROFILE_NAME"
+
+            aws configure set \
+              region "$PARAM_AWS_CLI_REGION" \
+              --profile "$PARAM_AWS_CLI_PROFILE_NAME"
+      - run:
+          name: "Empty << parameters.bucket_name >> bucket"
+          when: << parameters.when >>
+          shell: /bin/bash
+          command: |
+            bucket_name=<< parameters.bucket_name >>
+            if [[ -z $bucket_name ]]
+            then
+              echo "Skip the empty bucket action due to the empty bucket name"
+              exit 0
+            fi
+            bucket_uri="s3://$bucket_name"
+            bucket_info=$(aws s3 ls $bucket_uri 2>&1)
+            if echo $bucket_info | grep 'NoSuchBucket' > /dev/null
+            then
+              echo "Bucket doesn't exist, skip the empty bucket action"
+              exit 0
+            fi
+            # Empty before delete the bucket
+            aws s3 rm $bucket_uri --recursive
+      - run:
+          name: "Delete << parameters.stack_name >> stack"
+          when: << parameters.when >>
+          shell: /bin/bash
           command: |
             # Get stack id for the delete_stack waiter
             stack_info=$(aws cloudformation describe-stacks --stack-name << parameters.stack_name >> --query "Stacks[*] | [0].StackId" 2>&1)
-            if echo $stack_info | grep 'does not exist'
+            if echo $stack_info | grep 'does not exist' > /dev/null
             then
               echo "Stack does not exist."
               echo $stack_info
@@ -59,9 +211,9 @@ commands:
               if [ "<< parameters.when >>" = "on_fail" ]
               then
                 echo "Roll back completed. Green environment destroyed."
-                exit 1
+                exit 0
               fi
-              echo "Stack deleted."
+              echo "Stack << parameters.stack_name >> cleaned up"
               exit 0
             fi
   
@@ -269,7 +421,7 @@ jobs:
       - aws-cli/setup
       # Create backend infrastructure
       - deploy_stack:
-          stack_name: Udapeople-Backend-${CUR_SHORT_HASH}
+          stack_name: Udapeople-Backend-$CUR_SHORT_HASH
           template_file: $TEMPLATE_ROOT_DIR/ec2-instances.yml
           parameter_overrides: file://$TEMPLATE_ROOT_DIR/ec2-instances-parameters.json
       - run:
@@ -299,9 +451,8 @@ jobs:
             - "inventory.txt"
             - "backendpublicdns"
       # Rollback if fail
-      - delete_stack:
-          stack_name: Udapeople-Backend-${CUR_SHORT_HASH}
-          when: "on_fail"
+      - destroy_environment:
+          stack_name: Udapeople-Backend-$CUR_SHORT_HASH
 
   create-frontend-infrastructure:
     executor: aws-cli/default
@@ -353,24 +504,23 @@ jobs:
             - websiteurl
             - existbucket
       # Rollback if fail
-      - delete_stack:
-          stack_name: Udapeople-Frontend-${CUR_SHORT_HASH}
-          when: "on_fail"
+      - destroy_environment:
+          stack_name: Udapeople-Frontend-$CUR_SHORT_HASH
 
   configure-infrastructure: 
-    executor: 
-      name: python/default
-      tag: "3.11.2"
+    docker:
+      - image: python:3.10.10-alpine3.17
     steps:
       # This command will pull all of the files into a directory called project which can be found at ~/project.
       - checkout
       # Export environment variable
       - exports
       - add_ssh_keys:
-          fingerprints: ["c2:84:20:b3:bc:15:1b:1c:2e:32:54:00:98:f8:7d:81"] 
-      - python/install-packages:
-          args: ansible
-          pypi-cache: true
+          fingerprints: ["c2:84:20:b3:bc:15:1b:1c:2e:32:54:00:98:f8:7d:81"]
+      - run:
+          name: "Install Ansible"
+          command: |
+            apk add --update ansible
       - attach_workspace:
           at: /home/circleci/workspace
       - run:
@@ -378,19 +528,10 @@ jobs:
           command: |
             ansible-playbook -i $WORKSPACE_DIR/inventory.txt $PROJECT_DIR/.circleci/ansible/configure-server.yml
       # Rollback if fail
-      - run:
-          name: "Install AWS CLI"
-          command: |
-            curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
-            unzip awscliv2.zip
-            sudo ./aws/install
-          when: "on_fail"
-      - delete_stack:
-          stack_name: Udapeople-Frontend-${CUR_SHORT_HASH}
-          when: "on_fail"
-      - delete_stack:
-          stack_name: Udapeople-Backend-${CUR_SHORT_HASH}
-          when: "on_fail"
+      - destroy_environment:
+          stack_name: Udapeople-Frontend-$CUR_SHORT_HASH
+      - destroy_environment:
+          stack_name: Udapeople-Backend-$CUR_SHORT_HASH
 
   run-migrations:
     docker:
@@ -438,26 +579,12 @@ jobs:
               SET migration_${CUR_SHORT_HASH} 1
             fi
       # Rollback if fail
-      - run:
-          name: "Revert migration on fail"
-          command: |
-            cd $PROJECT_ROOT_DIR/backend
-            # Revert migration
-            npm run migrations:revert
-          when: "on_fail"
-      - run:
-          name: "Install AWS CLI"
-          command: |
-            curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
-            unzip awscliv2.zip
-            sudo ./aws/install
-          when: "on_fail"
-      - delete_stack:
-          stack_name: Udapeople-Frontend-${CUR_SHORT_HASH}
-          when: "on_fail"
-      - delete_stack:
-          stack_name: Udapeople-Backend-${CUR_SHORT_HASH}
-          when: "on_fail"
+      - revert-migrations:
+          migrations-key: migration_$CUR_SHORT_HASH
+      - destroy_environment:
+          stack_name: Udapeople-Frontend-$CUR_SHORT_HASH
+      - destroy_environment:
+          stack_name: Udapeople-Backend-$CUR_SHORT_HASH
 
   deploy-frontend:
     docker:
@@ -496,26 +623,17 @@ jobs:
             aws s3 sync dist s3://udapeople-frontend-$CUR_SHORT_HASH --delete
       # Here's where you will add some code to rollback on failure
       # Rollback if fail
-      - run:
-          name: "Revert migration on fail"
-          command: |
-            cd $PROJECT_ROOT_DIR/backend
-            # Install dependencies
-            npm install
-            # Revert migration on fail
-            npm run migrations:revert
-          when: "on_fail"
-      - delete_stack:
-          stack_name: Udapeople-Frontend-${CUR_SHORT_HASH}
-          when: "on_fail"
-      - delete_stack:
-          stack_name: Udapeople-Backend-${CUR_SHORT_HASH}
-          when: "on_fail"
+      - revert-migrations:
+          migrations-key: migration_$CUR_SHORT_HASH
+      - destroy_environment:
+          stack_name: Udapeople-Frontend-$CUR_SHORT_HASH
+          bucket_name: udapeople-frontend-$CUR_SHORT_HASH
+      - destroy_environment:
+          stack_name: Udapeople-Backend-$CUR_SHORT_HASH
 
   deploy-backend:
-    executor: 
-      name: python/default
-      tag: "3.11.2"
+    docker:
+      - image: python:3.10.10-alpine3.17
     steps:
       # This command will pull all of the files into a directory called project which can be found at ~/project.
       - checkout
@@ -523,8 +641,10 @@ jobs:
       - exports
       - add_ssh_keys:
           fingerprints: ["c2:84:20:b3:bc:15:1b:1c:2e:32:54:00:98:f8:7d:81"]
-      - python/install-packages:
-          args: ansible
+      - run:
+          name: "Install Ansible"
+          command: |
+            apk add --update ansible
       - attach_workspace:
           at: /home/circleci/workspace
       - run:
@@ -540,19 +660,64 @@ jobs:
           command: |
             ansible-playbook -i $WORKSPACE_DIR/inventory.txt $PROJECT_DIR/.circleci/ansible/deploy-backend.yml
       # Rollback if fail
+      - revert-migrations:
+          migrations-key: migration_$CUR_SHORT_HASH
+      - destroy_environment:
+          stack_name: Udapeople-Frontend-$CUR_SHORT_HASH
+          bucket_name: udapeople-frontend-$CUR_SHORT_HASH
+      - destroy_environment:
+          stack_name: Udapeople-Backend-$CUR_SHORT_HASH
+
+  smoke-test:
+    docker:
+      - image: alpine:latest
+    steps:
+      # This command will pull all of the files into a directory called project which can be found at ~/project.
+      - checkout
+      # Export environment variable
+      - exports
+      - attach_workspace:
+          at: /home/circleci/workspace
       - run:
-          name: "Install AWS CLI"
+          name: Install dependencies
           command: |
-            curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
-            unzip awscliv2.zip
-            sudo ./aws/install
-          when: "on_fail"
-      - delete_stack:
-          stack_name: Udapeople-Frontend-${CUR_SHORT_HASH}
-          when: "on_fail"
-      - delete_stack:
-          stack_name: Udapeople-Backend-${CUR_SHORT_HASH}
-          when: "on_fail"
+            apk add curl
+      - run:
+          name: "Backend smoke test"
+          command: |
+            API_URL=$(cat $WORKSPACE_DIR/backendpublicdns)
+            echo $API_URL
+            test_result=$(curl "$API_URL/api/status")
+            if echo $test_result | grep "ok" > /dev/null
+            then
+              echo "Backend test passed"
+              echo $test_result
+              exit 0
+            else
+              echo $test_result
+              exit 1
+            fi
+      - run:
+          name: Frontend smoke test.
+          command: |
+            static_host=$(cat $WORKSPACE_DIR/websiteurl)
+            URL="http://$static_host/#/employees"
+            echo ${URL}
+            if curl -s ${URL} | grep "Welcome"
+            then
+              # Change this to 0 after the job fails
+              exit 1
+            else
+              exit 1
+            fi
+      # Rollback if fail
+      - revert-migrations:
+          migrations-key: migration_$CUR_SHORT_HASH
+      - destroy_environment:
+          stack_name: Udapeople-Frontend-$CUR_SHORT_HASH
+          bucket_name: udapeople-frontend-$CUR_SHORT_HASH
+      - destroy_environment:
+          stack_name: Udapeople-Backend-$CUR_SHORT_HASH
 
   clean-up:
     executor: aws-cli/default
@@ -564,11 +729,14 @@ jobs:
       # Set up AWS Credentials
       - aws-cli/setup
       # Remove the backend infrastructure
-      - delete_stack:
-          stack_name: Udapeople-Backend-${PRE_SHORT_HASH}
+      - destroy_environment:
+          stack_name: Udapeople-Backend-$CUR_SHORT_HASH
+          when: "always"
       # Remove the frontend infrastructure
-      - delete_stack:
-          stack_name: Udapeople-Frontend-${PRE_SHORT_HASH}
+      - destroy_environment:
+          stack_name: Udapeople-Frontend-$CUR_SHORT_HASH
+          bucket_name: udapeople-frontend-$CUR_SHORT_HASH
+          when: "always"
 
 
 workflows:
@@ -589,12 +757,19 @@ workflows:
           requires:
             - "build-backend"
       - create-network-infrastructure:
+          requires:
+            - "test-frontend"
+            - "scan-frontend"
+            - "test-backend"
+            - "scan-backend"
           filters:
             branches:
               only:
                 - master
                 - "cicd-final-project"
       - create-frontend-infrastructure:
+          requires:
+            - "create-network-infrastructure"
           filters:
             branches:
               only:
@@ -617,6 +792,9 @@ workflows:
                 - master
                 - "cicd-final-project"
       - run-migrations:
+          requires:
+            - "configure-infrastructure"
+            - "create-frontend-infrastructure"
           filters:
             branches:
               only:
@@ -624,8 +802,6 @@ workflows:
                 - "cicd-final-project"
       - deploy-frontend:
           requires:
-            - "create-frontend-infrastructure"
-            - "create-backend-infrastructure"
             - "run-migrations"
           filters:
             branches:
@@ -634,8 +810,16 @@ workflows:
                 - "cicd-final-project"
       - deploy-backend:
           requires:
-            - "build-backend"
-            - "configure-infrastructure"
+            - "run-migrations"
+          filters:
+            branches:
+              only:
+                - master
+                - "cicd-final-project"
+      - smoke-test:
+          requires:
+            - "deploy-frontend"
+            - "deploy-backend"
           filters:
             branches:
               only:
@@ -643,8 +827,7 @@ workflows:
                 - "cicd-final-project"
       - clean-up:
           requires:
-            - "deploy-frontend"
-            - "deploy-backend"
+            - "smoke-test"
           filters:
             branches:
               only:
