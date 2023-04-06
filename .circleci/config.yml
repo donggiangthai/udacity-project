@@ -18,10 +18,9 @@ commands:
       - run:
           name: "Export environment variable"
           command: |
-            echo 'export PROJECT_DIR="/home/circleci/project"' >> "$BASH_ENV"
             echo 'export WORKSPACE_DIR="/home/circleci/workspace"' >> "$BASH_ENV"
-            echo 'export PROJECT_ROOT_DIR="/home/circleci/project/build-cicd-pipeline/final-project"' >> "$BASH_ENV"
-            echo 'export TEMPLATE_ROOT_DIR="/home/circleci/project/build-cicd-pipeline/create-infrastructure"' >> "$BASH_ENV"
+            echo 'export PROJECT_ROOT_DIR="build-cicd-pipeline/final-project"' >> "$BASH_ENV"
+            echo 'export TEMPLATE_ROOT_DIR="build-cicd-pipeline/create-infrastructure"' >> "$BASH_ENV"
             echo 'export PROJECT_TAG="ThaiDG-Udacity-final-project"' >> "$BASH_ENV"
 
   revert-migrations:
@@ -46,7 +45,9 @@ commands:
       - run:
           name: "Install redis-cli"
           when: "on_fail"
-          command: |
+          command: >
+            #!/bin/sh
+            
             # no error if existing, make parent directories as needed
             mkdir --parents ~/tmp
             cd ~/tmp
@@ -69,6 +70,11 @@ commands:
             PARAM_MIGRATIONS_KEY: <<parameters.migrations-key>>
           command: >
             #!/bin/sh
+
+            PARAM_REDIS_CLI_HOST=$(eval echo "\$$PARAM_REDIS_CLI_HOST")
+            PARAM_REDIS_CLI_PORT=$(eval echo "\$$PARAM_REDIS_CLI_PORT")
+            PARAM_REDIS_CLI_USERNAME=$(eval echo "\$$PARAM_REDIS_CLI_USERNAME")
+            PARAM_REDIS_CLI_PASSWORD=$(eval echo "\$$PARAM_REDIS_CLI_PASSWORD")
             
             SUCCESS=$(
               redis-cli \
@@ -85,7 +91,7 @@ commands:
               exit 0
             fi
 
-            cd $PROJECT_ROOT_DIR/backend
+            cd $CIRCLE_WORKING_DIRECTORY/PROJECT_ROOT_DIR/backend
             # Install dependencies
             npm install
             # Revert migration on fail
@@ -144,16 +150,17 @@ commands:
           when: << parameters.when >>
           command: >
             #!/bin/sh
+
             PARAM_AWS_CLI_ACCESS_KEY_ID=$(eval echo "\$$PARAM_AWS_CLI_ACCESS_KEY_ID")
 
             PARAM_AWS_CLI_SECRET_ACCESS_KEY=$(eval echo "\$$PARAM_AWS_CLI_SECRET_ACCESS_KEY")
 
             PARAM_AWS_CLI_REGION=$(eval echo "\$$PARAM_AWS_CLI_REGION")
 
-            if [ -z "$PARAM_AWS_CLI_ACCESS_KEY_ID" ] || [ -z "${PARAM_AWS_CLI_SECRET_ACCESS_KEY}" ] 
-            then 
-                echo "Cannot configure profile. AWS access key id and AWS secret access key must be provided."
-                exit 1
+            if [ -z "$PARAM_AWS_CLI_ACCESS_KEY_ID" ] || [ -z "${PARAM_AWS_CLI_SECRET_ACCESS_KEY}" ]
+            then
+              echo "Cannot configure profile. AWS access key id and AWS secret access key must be provided."
+              exit 1
             fi
 
             aws configure set \
@@ -171,7 +178,9 @@ commands:
           name: "Empty << parameters.bucket_name >> bucket"
           when: << parameters.when >>
           shell: /bin/bash
-          command: |
+          command: >
+            #!/bin/sh
+
             bucket_name=<< parameters.bucket_name >>
             if [[ -z $bucket_name ]]
             then
@@ -191,7 +200,9 @@ commands:
           name: "Delete << parameters.stack_name >> stack"
           when: << parameters.when >>
           shell: /bin/bash
-          command: |
+          command: >
+            #!/bin/sh
+
             # Get stack id for the delete_stack waiter
             stack_info=$(aws cloudformation describe-stacks --stack-name << parameters.stack_name >> --query "Stacks[*] | [0].StackId" 2>&1)
             if echo $stack_info | grep 'does not exist' > /dev/null
@@ -252,7 +263,7 @@ jobs:
       - run:
           name: Build frontend
           command: |
-            cd $PROJECT_ROOT_DIR/frontend
+            cd $CIRCLE_WORKING_DIRECTORY/PROJECT_ROOT_DIR/frontend
             npm install
             npm run build
       - save_cache:
@@ -272,7 +283,7 @@ jobs:
       - run: 
           name: Save all db varibles in env file 
           command: |
-            cd $PROJECT_ROOT_DIR/backend
+            cd $CIRCLE_WORKING_DIRECTORY/PROJECT_ROOT_DIR/backend
             touch .env
             echo TYPEORM_HOST=$TYPEORM_HOST >> .env
             echo TYPEORM_CONNECTION=$TYPEORM_CONNECTION >> .env
@@ -286,7 +297,7 @@ jobs:
       - run:
           name: Build backend
           command: |
-            cd $PROJECT_ROOT_DIR/backend
+            cd $CIRCLE_WORKING_DIRECTORY/PROJECT_ROOT_DIR/backend
             npm install
             npm run build
             cd ..
@@ -317,7 +328,7 @@ jobs:
       - run:
           name: Test frontend
           command: |
-            cd $PROJECT_ROOT_DIR/frontend
+            cd $CIRCLE_WORKING_DIRECTORY/PROJECT_ROOT_DIR/frontend
             npm install
             npm run test
 
@@ -334,7 +345,7 @@ jobs:
       - run:
           name: Test backend
           command: |
-            cd $PROJECT_ROOT_DIR/backend
+            cd $CIRCLE_WORKING_DIRECTORY/PROJECT_ROOT_DIR/backend
             npm install
             npm run test
 
@@ -353,7 +364,7 @@ jobs:
       - run:
           name: "Scan frontend"
           command: |
-            cd $PROJECT_ROOT_DIR/frontend
+            cd $CIRCLE_WORKING_DIRECTORY/PROJECT_ROOT_DIR/frontend
             npm audit fix --audit-level=critical --force
             # If the "npm audit fix" command above could not fix all critical vulnerabilities, try “npm audit fix --force” again
             npm audit fix --force
@@ -374,7 +385,7 @@ jobs:
       - run:
           name: "Scan backend"
           command: |
-            cd $PROJECT_ROOT_DIR/backend
+            cd $CIRCLE_WORKING_DIRECTORY/PROJECT_ROOT_DIR/backend
             npm audit fix --audit-level=critical --force
             # If the "npm audit fix" command above could not fix all critical vulnerabilities, try “npm audit fix --force” again
             npm audit fix --force
@@ -395,18 +406,18 @@ jobs:
       # Create networking
       - deploy_stack:
           stack_name: 'NetWorking-Final-Project'
-          template_file: $TEMPLATE_ROOT_DIR/networking.yml
-          parameter_overrides: file://$TEMPLATE_ROOT_DIR/networking-parameters.json
+          template_file: $CIRCLE_WORKING_DIRECTORY/TEMPLATE_ROOT_DIR/networking.yml
+          parameter_overrides: file://$CIRCLE_WORKING_DIRECTORY/TEMPLATE_ROOT_DIR/networking-parameters.json
       # Create security
       - deploy_stack:
           stack_name: 'Security-Final-Project'
-          template_file: $TEMPLATE_ROOT_DIR/security.yml
-          parameter_overrides: file://$TEMPLATE_ROOT_DIR/security-parameters.json
+          template_file: $CIRCLE_WORKING_DIRECTORY/TEMPLATE_ROOT_DIR/security.yml
+          parameter_overrides: file://$CIRCLE_WORKING_DIRECTORY/TEMPLATE_ROOT_DIR/security-parameters.json
       # Create launch template
       - deploy_stack:
           stack_name: 'Launch-Template-Final-Project'
-          template_file: $TEMPLATE_ROOT_DIR/launch-template.yml
-          parameter_overrides: file://$TEMPLATE_ROOT_DIR/launch-template-parameters.json
+          template_file: $CIRCLE_WORKING_DIRECTORY/TEMPLATE_ROOT_DIR/launch-template.yml
+          parameter_overrides: file://$CIRCLE_WORKING_DIRECTORY/TEMPLATE_ROOT_DIR/launch-template-parameters.json
 
   create-backend-infrastructure:
     executor: aws-cli/default
@@ -422,8 +433,8 @@ jobs:
       # Create backend infrastructure
       - deploy_stack:
           stack_name: Udapeople-Backend-$CUR_SHORT_HASH
-          template_file: $TEMPLATE_ROOT_DIR/ec2-instances.yml
-          parameter_overrides: file://$TEMPLATE_ROOT_DIR/ec2-instances-parameters.json
+          template_file: $CIRCLE_WORKING_DIRECTORY/TEMPLATE_ROOT_DIR/ec2-instances.yml
+          parameter_overrides: file://$CIRCLE_WORKING_DIRECTORY/TEMPLATE_ROOT_DIR/ec2-instances-parameters.json
       - run:
           name: "Get backend URL"
           command: |
@@ -437,9 +448,9 @@ jobs:
             --query "Exports[?Name==\`$backend_public_dns\`].Value" \
             --no-paginate --output text)
             # Append the DNS to the inventory file
-            echo $host >> $PROJECT_DIR/.circleci/ansible/inventory.txt
+            echo $host >> $CIRCLE_WORKING_DIRECTORY/.circleci/ansible/inventory.txt
             # Move to workspace
-            mv $PROJECT_DIR/.circleci/ansible/inventory.txt $WORKSPACE_DIR/inventory.txt
+            mv $CIRCLE_WORKING_DIRECTORY/.circleci/ansible/inventory.txt $WORKSPACE_DIR/inventory.txt
             # Setup API_URL for frontend to use
             API_URL="http://${host}:3030"
             echo "${API_URL}"
@@ -466,7 +477,7 @@ jobs:
       # Create frontend server
       - deploy_stack:
           stack_name: Udapeople-Frontend-${CUR_SHORT_HASH}
-          template_file: $TEMPLATE_ROOT_DIR/bucket.yml
+          template_file: $CIRCLE_WORKING_DIRECTORY/TEMPLATE_ROOT_DIR/bucket.yml
           parameter_overrides: MyBucketName=udapeople-frontend-$CUR_SHORT_HASH
       - run:
           name: "Fetch and save the static host of the current bucket"
@@ -521,12 +532,13 @@ jobs:
           name: "Install Ansible"
           command: |
             apk add --update ansible
+            apk add --update curl
       - attach_workspace:
           at: /home/circleci/workspace
       - run:
           name: Run Playbook and Configure server
           command: |
-            ansible-playbook -i $WORKSPACE_DIR/inventory.txt $PROJECT_DIR/.circleci/ansible/configure-server.yml
+            ansible-playbook -i $WORKSPACE_DIR/inventory.txt $CIRCLE_WORKING_DIRECTORY/.circleci/ansible/configure-server.yml
       # Rollback if fail
       - destroy_environment:
           stack_name: Udapeople-Frontend-$CUR_SHORT_HASH
@@ -545,7 +557,7 @@ jobs:
           name: Run migrations
           command: |
             # Your code here
-            cd $PROJECT_ROOT_DIR/backend
+            cd $CIRCLE_WORKING_DIRECTORY/PROJECT_ROOT_DIR/backend
             # Install dependencies
             npm install
             # Run and save the migration output
@@ -568,7 +580,7 @@ jobs:
           name: Send migration results to redis-cloud
           command: |
             # Your code here
-            cd $PROJECT_ROOT_DIR/backend
+            cd $CIRCLE_WORKING_DIRECTORY/PROJECT_ROOT_DIR/backend
             if cat migrations_dump.txt | grep "has been executed successfully."
             then
               redis-cli \
@@ -607,7 +619,7 @@ jobs:
       - run:
           name: Deploy frontend objects
           command: |
-            cd $PROJECT_ROOT_DIR/frontend
+            cd $CIRCLE_WORKING_DIRECTORY/PROJECT_ROOT_DIR/frontend
             # Create .env file
             touch .env
             # Get backend URL
@@ -653,12 +665,12 @@ jobs:
             # Move the compressed file to ansible folder
             ls -la $WORKSPACE_DIR
             # no error if existing, make parent directories as needed
-            mkdir --parents $PROJECT_DIR/.circleci/ansible/roles/deploy/files
-            mv $WORKSPACE_DIR/artifact-backend.tar.gz $PROJECT_DIR/.circleci/ansible/roles/deploy/files/artifact-backend.tar.gz
+            mkdir --parents $CIRCLE_WORKING_DIRECTORY/.circleci/ansible/roles/deploy/files
+            mv $WORKSPACE_DIR/artifact-backend.tar.gz $CIRCLE_WORKING_DIRECTORY/.circleci/ansible/roles/deploy/files/artifact-backend.tar.gz
       - run:
           name: "Ansible play book for deploy backend"
           command: |
-            ansible-playbook -i $WORKSPACE_DIR/inventory.txt $PROJECT_DIR/.circleci/ansible/deploy-backend.yml
+            ansible-playbook -i $WORKSPACE_DIR/inventory.txt $CIRCLE_WORKING_DIRECTORY/.circleci/ansible/deploy-backend.yml
       # Rollback if fail
       - revert-migrations:
           migrations-key: migration_$CUR_SHORT_HASH
