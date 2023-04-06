@@ -572,12 +572,11 @@ jobs:
           name: "Install redis-cli"
           command: |
             cd $(eval echo "$CIRCLE_WORKING_DIRECTORY/$PROJECT_ROOT_DIR/backend")
-
-            if if cat migrations_dump.txt | grep "No migrations are pending"
+            if cat migrations_dump.txt | grep "No migrations are pending"
             then
               echo "Skip Redis installation phase"
+              exit 0
             fi
-
             # no error if existing, make parent directories as needed
             mkdir --parents ~/tmp
             cd ~/tmp
@@ -753,11 +752,11 @@ jobs:
       # Set up AWS Credentials
       - aws-cli/setup
       - attach_workspace:
-          at: ~/
+          at: /home/circleci/workspace
       - deploy_stack:
-          stack_name: "production-distro"
-          template_file: "$CIRCLE_WORKING_DIRECTORY/$TEMPLATE_ROOT_DIR/cloudfront.yml"
-          parameter_overrides: "S3StaticHost=$(cat ~/websiteurl)"
+          stack_name: production-distro
+          template_file: $CIRCLE_WORKING_DIRECTORY/$TEMPLATE_ROOT_DIR/cloudfront.yml
+          parameter_overrides: S3StaticHost=$(cat $WORKSPACE_DIR/websiteurl)
       # Rollback if fail
       - revert-migrations:
           migrations-key: migration_$CUR_SHORT_HASH
@@ -776,6 +775,8 @@ jobs:
       - exports
       # Set up AWS Credentials
       - aws-cli/setup
+      - attach_workspace:
+          at: /home/circleci/workspace
       - run:
           name: "Fetch stacks and save the old stack name"
           command: |
@@ -787,19 +788,37 @@ jobs:
                   --no-paginate --output text
               )
             )
-            echo Stack names: "${STACKS[@]}"
+            echo Stack names: ${STACKS[@]}
             for stack in ${STACKS[@]}
             do
-              echo $stack
+              if [[ ! "$stack" =~ "$CUR_SHORT_HASH" ]] && [[ ! "$stack" =~ "Final-Project" ]]
+              then
+                if [[ "$stack" =~ "Frontend" ]]
+                then
+                  touch $WORKSPACE_DIR/destroyfrontendstack
+                  echo "Frontend stack is $stack"
+                  echo $stack > $WORKSPACE_DIR/destroyfrontendstack
+                  touch $WORKSPACE_DIR/destroybucketname
+                  # Set stack name lowercase as a bucket name
+                  bucket_name=$(eval echo $stack | tr '[:upper:]' '[:lower:]')
+                  echo "Bucket name is $bucket_name"
+                  echo $bucket_name > $WORKSPACE_DIR/destroybucketname
+                fi
+                if [[ "$stack" =~ "Backend" ]]
+                then
+                  touch $WORKSPACE_DIR/destroybackendstack
+                  echo "Backend stack is $stack"
+                  echo $stack > $WORKSPACE_DIR/destroybackendstack
+                fi
             done
       # Remove the backend infrastructure
       - destroy_environment:
-          stack_name: Udapeople-Backend-$CUR_SHORT_HASH
+          stack_name: $(eval cat $WORKSPACE_DIR/destroybackendstack)
           when: "always"
       # Remove the frontend infrastructure
       - destroy_environment:
-          stack_name: Udapeople-Frontend-$CUR_SHORT_HASH
-          bucket_name: udapeople-frontend-$CUR_SHORT_HASH
+          stack_name: $(eval cat $WORKSPACE_DIR/destroyfrontendstack)
+          bucket_name: $(eval cat $WORKSPACE_DIR/destroybucketname)
           when: "always"
 
 
