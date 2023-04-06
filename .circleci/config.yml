@@ -22,6 +22,10 @@ commands:
             echo 'export PROJECT_ROOT_DIR="build-cicd-pipeline/final-project"' >> "$BASH_ENV"
             echo 'export TEMPLATE_ROOT_DIR="build-cicd-pipeline/create-infrastructure"' >> "$BASH_ENV"
             echo 'export PROJECT_TAG="ThaiDG-Udacity-final-project"' >> "$BASH_ENV"
+      - run:
+          name: "Execute $BASH_ENV"
+          command: |
+            source $BASH_ENV
 
   revert-migrations:
     description: "Revert last migrations"
@@ -45,7 +49,6 @@ commands:
       - run:
           name: "Install redis-cli"
           when: "on_fail"
-          shell: /bin/bash
           command: |
             # no error if existing, make parent directories as needed
             mkdir --parents ~/tmp
@@ -67,7 +70,6 @@ commands:
             PARAM_REDIS_CLI_USERNAME: <<parameters.redis-cli-username>>
             PARAM_REDIS_CLI_PASSWORD: <<parameters.redis-cli-password>>
             PARAM_MIGRATIONS_KEY: <<parameters.migrations-key>>
-          shell: /bin/bash
           command: |
             PARAM_REDIS_CLI_HOST=$(eval echo "\$$PARAM_REDIS_CLI_HOST")
             PARAM_REDIS_CLI_PORT=$(eval echo "\$$PARAM_REDIS_CLI_PORT")
@@ -146,7 +148,6 @@ commands:
             PARAM_AWS_CLI_REGION: <<parameters.aws-region>>
             PARAM_AWS_CLI_PROFILE_NAME: <<parameters.profile-name>>
           when: << parameters.when >>
-          shell: /bin/bash
           command: |
             PARAM_AWS_CLI_ACCESS_KEY_ID=$(eval echo "\$$PARAM_AWS_CLI_ACCESS_KEY_ID")
 
@@ -174,7 +175,7 @@ commands:
       - run:
           name: "Empty << parameters.bucket_name >> bucket"
           when: << parameters.when >>
-          shell: /bin/bash
+          shell: /bin/sh
           command: |
             bucket_name="<< parameters.bucket_name >>"
 
@@ -195,7 +196,7 @@ commands:
       - run:
           name: "Delete << parameters.stack_name >> stack"
           when: << parameters.when >>
-          shell: /bin/bash
+          shell: /bin/sh
           command: |
             # Get stack id for the delete_stack waiter
             stack_info=$(aws cloudformation describe-stacks --stack-name << parameters.stack_name >> --query "Stacks[*] | [0].StackId" 2>&1)
@@ -523,10 +524,12 @@ jobs:
       - add_ssh_keys:
           fingerprints: ["c2:84:20:b3:bc:15:1b:1c:2e:32:54:00:98:f8:7d:81"]
       - run:
-          name: "Install Ansible"
+          name: "Install dependencies"
           command: |
             apk add --update ansible
             apk add --update curl
+            apk add --update wget
+            apk add --update tar
       - attach_workspace:
           at: /home/circleci/workspace
       - run:
@@ -648,9 +651,12 @@ jobs:
       - add_ssh_keys:
           fingerprints: ["c2:84:20:b3:bc:15:1b:1c:2e:32:54:00:98:f8:7d:81"]
       - run:
-          name: "Install Ansible"
+          name: "Install dependencies"
           command: |
             apk add --update ansible
+            apk add --update curl
+            apk add --update wget
+            apk add --update tar
       - attach_workspace:
           at: /home/circleci/workspace
       - run:
