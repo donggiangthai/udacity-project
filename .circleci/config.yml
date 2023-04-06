@@ -522,7 +522,7 @@ jobs:
       - add_ssh_keys:
           fingerprints: ["c2:84:20:b3:bc:15:1b:1c:2e:32:54:00:98:f8:7d:81"]
       - python/install-packages:
-          - args: ansible
+          args: ansible
       - attach_workspace:
           at: /home/circleci/workspace
       - run:
