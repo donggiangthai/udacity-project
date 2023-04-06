@@ -45,6 +45,7 @@ Resources:
                                         -   - !Ref EnvironmentName
                                             - "-ec2-instance-sg-"
                                             -   Ref: "AWS::Region"
+                            - "sg-0db24012d77a00319"
                 TagSpecifications:
                     -   ResourceType: "instance"
                         Tags:
