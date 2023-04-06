@@ -139,11 +139,12 @@ commands:
               echo "AWS CLI is already installed, skipping installation."
               exit 0
             fi
+
             curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
             unzip awscliv2.zip
             sudo ./aws/install
       - run:
-          name: "Configure AWS Access Key ID"
+          name: "Configure AWS credential"
           environment:
             PARAM_AWS_CLI_ACCESS_KEY_ID: <<parameters.aws-access-key-id>>
             PARAM_AWS_CLI_SECRET_ACCESS_KEY: <<parameters.aws-secret-access-key>>
@@ -151,6 +152,12 @@ commands:
             PARAM_AWS_CLI_PROFILE_NAME: <<parameters.profile-name>>
           when: << parameters.when >>
           command: |
+            if aws --version | grep "aws-cli/" > /dev/null
+            then
+              echo "Due to AWS CLI is already installed, skipping configuration AWS credential."
+              exit 0
+            fi
+
             PARAM_AWS_CLI_ACCESS_KEY_ID=$(eval echo "\$$PARAM_AWS_CLI_ACCESS_KEY_ID")
 
             PARAM_AWS_CLI_SECRET_ACCESS_KEY=$(eval echo "\$$PARAM_AWS_CLI_SECRET_ACCESS_KEY")
@@ -186,13 +193,16 @@ commands:
               echo "Skip the empty bucket action due to the empty bucket name"
               exit 0
             fi
+
             bucket_uri="s3://$bucket_name"
             bucket_info=$(aws s3 ls $bucket_uri 2>&1)
+
             if echo $bucket_info | grep 'NoSuchBucket' > /dev/null
             then
               echo "Bucket doesn't exist, skip the empty bucket action"
               exit 0
             fi
+
             # Empty before delete the bucket
             aws s3 rm $bucket_uri --recursive
       - run:
@@ -551,7 +561,6 @@ jobs:
       - run:
           name: Run migrations
           command: |
-            # Your code here
             cd $(eval echo "$CIRCLE_WORKING_DIRECTORY/$PROJECT_ROOT_DIR/backend")
             # Install dependencies
             npm install
@@ -562,6 +571,13 @@ jobs:
       - run:
           name: "Install redis-cli"
           command: |
+            cd $(eval echo "$CIRCLE_WORKING_DIRECTORY/$PROJECT_ROOT_DIR/backend")
+            
+            if if cat migrations_dump.txt | grep "No migrations are pending"
+            then
+              echo "Skip Redis installation phase"
+            fi
+
             # no error if existing, make parent directories as needed
             mkdir --parents ~/tmp
             cd ~/tmp
@@ -574,8 +590,8 @@ jobs:
       - run:
           name: Send migration results to redis-cloud
           command: |
-            # Your code here
             cd $(eval echo "$CIRCLE_WORKING_DIRECTORY/$PROJECT_ROOT_DIR/backend")
+
             if cat migrations_dump.txt | grep "has been executed successfully."
             then
               redis-cli \
@@ -585,6 +601,7 @@ jobs:
                 --pass $REDIS_CLI_PASSWORD \
               SET migration_${CUR_SHORT_HASH} 1
             fi
+
             echo "No migration has been executed."
       # Rollback if fail
       - revert-migrations:
