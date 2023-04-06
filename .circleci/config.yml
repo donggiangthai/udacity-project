@@ -2,6 +2,7 @@ version: 2.1
 
 orbs:
   aws-cli: circleci/aws-cli@3.1.5
+  python: circleci/python@2.1.1
 
 commands:
   exports:
@@ -22,10 +23,6 @@ commands:
             echo 'export PROJECT_ROOT_DIR="build-cicd-pipeline/final-project"' >> "$BASH_ENV"
             echo 'export TEMPLATE_ROOT_DIR="build-cicd-pipeline/create-infrastructure"' >> "$BASH_ENV"
             echo 'export PROJECT_TAG="ThaiDG-Udacity-final-project"' >> "$BASH_ENV"
-      - run:
-          name: "Execute $BASH_ENV"
-          command: |
-            source $BASH_ENV
 
   revert-migrations:
     description: "Revert last migrations"
@@ -514,8 +511,9 @@ jobs:
           stack_name: Udapeople-Frontend-$CUR_SHORT_HASH
 
   configure-infrastructure: 
-    docker:
-      - image: python:3.10.10-alpine3.17
+    executor:
+      name: python/default
+      tag: "3.11.2"
     steps:
       # This command will pull all of the files into a directory called project which can be found at ~/project.
       - checkout
@@ -523,13 +521,8 @@ jobs:
       - exports
       - add_ssh_keys:
           fingerprints: ["c2:84:20:b3:bc:15:1b:1c:2e:32:54:00:98:f8:7d:81"]
-      - run:
-          name: "Install dependencies"
-          command: |
-            apk add --update ansible
-            apk add --update curl
-            apk add --update wget
-            apk add --update tar
+      - python/install-packages:
+          - args: ansible
       - attach_workspace:
           at: /home/circleci/workspace
       - run:
@@ -641,8 +634,9 @@ jobs:
           stack_name: Udapeople-Backend-$CUR_SHORT_HASH
 
   deploy-backend:
-    docker:
-      - image: python:3.10.10-alpine3.17
+    executor: 
+      name: python/default
+      tag: "3.11.2"
     steps:
       # This command will pull all of the files into a directory called project which can be found at ~/project.
       - checkout
@@ -650,13 +644,8 @@ jobs:
       - exports
       - add_ssh_keys:
           fingerprints: ["c2:84:20:b3:bc:15:1b:1c:2e:32:54:00:98:f8:7d:81"]
-      - run:
-          name: "Install dependencies"
-          command: |
-            apk add --update ansible
-            apk add --update curl
-            apk add --update wget
-            apk add --update tar
+      - python/install-packages:
+          args: ansible
       - attach_workspace:
           at: /home/circleci/workspace
       - run:
@@ -681,19 +670,16 @@ jobs:
           stack_name: Udapeople-Backend-$CUR_SHORT_HASH
 
   smoke-test:
-    docker:
-      - image: alpine:latest
+    executor: aws-cli/default
     steps:
       # This command will pull all of the files into a directory called project which can be found at ~/project.
       - checkout
       # Export environment variable
       - exports
+      # Set up AWS Credentials
+      - aws-cli/setup
       - attach_workspace:
           at: /home/circleci/workspace
-      - run:
-          name: Install dependencies
-          command: |
-            apk add curl
       - run:
           name: "Backend smoke test"
           command: |
