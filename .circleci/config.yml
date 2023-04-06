@@ -572,7 +572,7 @@ jobs:
           name: "Install redis-cli"
           command: |
             cd $(eval echo "$CIRCLE_WORKING_DIRECTORY/$PROJECT_ROOT_DIR/backend")
-            
+
             if if cat migrations_dump.txt | grep "No migrations are pending"
             then
               echo "Skip Redis installation phase"
@@ -709,7 +709,7 @@ jobs:
             API_URL=$(cat $WORKSPACE_DIR/backendpublicdns)
             echo $API_URL
             test_result=$(curl "$API_URL/api/status")
-            if echo $test_result | grep "ok"
+            if echo $test_result | grep "ok" > /dev/null
             then
               echo "Backend test passed"
               echo $test_result
@@ -724,11 +724,14 @@ jobs:
             static_host=$(cat $WORKSPACE_DIR/websiteurl)
             URL="http://$static_host/#/employees"
             echo ${URL}
-            if curl -s ${URL} | grep "Welcome"
+            test_result=$(curl -s "$URL")
+            if echo $test_result | grep "Welcome" > /dev/null
             then
-              # Change this to 0 after the job fails
-              exit 1
+              echo "Frontend test passed"
+              echo $test_result
+              exit 0
             else
+              echo $test_result
               exit 1
             fi
       # Rollback if fail
