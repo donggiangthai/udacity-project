@@ -45,9 +45,8 @@ commands:
       - run:
           name: "Install redis-cli"
           when: "on_fail"
-          command: >
-            #!/bin/sh
-
+          shell: /bin/sh
+          command: |
             # no error if existing, make parent directories as needed
             mkdir --parents ~/tmp
             cd ~/tmp
@@ -68,9 +67,8 @@ commands:
             PARAM_REDIS_CLI_USERNAME: <<parameters.redis-cli-username>>
             PARAM_REDIS_CLI_PASSWORD: <<parameters.redis-cli-password>>
             PARAM_MIGRATIONS_KEY: <<parameters.migrations-key>>
-          command: >
-            #!/bin/sh
-
+          shell: /bin/sh
+          command: |
             PARAM_REDIS_CLI_HOST=$(eval echo "\$$PARAM_REDIS_CLI_HOST")
             PARAM_REDIS_CLI_PORT=$(eval echo "\$$PARAM_REDIS_CLI_PORT")
             PARAM_REDIS_CLI_USERNAME=$(eval echo "\$$PARAM_REDIS_CLI_USERNAME")
@@ -148,9 +146,8 @@ commands:
             PARAM_AWS_CLI_REGION: <<parameters.aws-region>>
             PARAM_AWS_CLI_PROFILE_NAME: <<parameters.profile-name>>
           when: << parameters.when >>
-          command: >
-            #!/bin/sh
-
+          shell: /bin/sh
+          command: |
             PARAM_AWS_CLI_ACCESS_KEY_ID=$(eval echo "\$$PARAM_AWS_CLI_ACCESS_KEY_ID")
 
             PARAM_AWS_CLI_SECRET_ACCESS_KEY=$(eval echo "\$$PARAM_AWS_CLI_SECRET_ACCESS_KEY")
@@ -177,11 +174,10 @@ commands:
       - run:
           name: "Empty << parameters.bucket_name >> bucket"
           when: << parameters.when >>
-          shell: /bin/bash
-          command: >
-            #!/bin/sh
+          shell: /bin/sh
+          command: |
+            bucket_name="<< parameters.bucket_name >>"
 
-            bucket_name=<< parameters.bucket_name >>
             if [[ -z $bucket_name ]]
             then
               echo "Skip the empty bucket action due to the empty bucket name"
@@ -199,10 +195,8 @@ commands:
       - run:
           name: "Delete << parameters.stack_name >> stack"
           when: << parameters.when >>
-          shell: /bin/bash
-          command: >
-            #!/bin/sh
-
+          shell: /bin/sh
+          command: |
             # Get stack id for the delete_stack waiter
             stack_info=$(aws cloudformation describe-stacks --stack-name << parameters.stack_name >> --query "Stacks[*] | [0].StackId" 2>&1)
             if echo $stack_info | grep 'does not exist' > /dev/null
@@ -448,9 +442,9 @@ jobs:
             --query "Exports[?Name==\`$backend_public_dns\`].Value" \
             --no-paginate --output text)
             # Append the DNS to the inventory file
-            echo $host >> $CIRCLE_WORKING_DIRECTORY/.circleci/ansible/inventory.txt
+            echo $host >> $(eval echo "$CIRCLE_WORKING_DIRECTORY/.circleci/ansible/inventory.txt")
             # Move to workspace
-            mv $CIRCLE_WORKING_DIRECTORY/.circleci/ansible/inventory.txt $WORKSPACE_DIR/inventory.txt
+            mv $(eval echo "$CIRCLE_WORKING_DIRECTORY/.circleci/ansible/inventory.txt $WORKSPACE_DIR/inventory.txt")
             # Setup API_URL for frontend to use
             API_URL="http://${host}:3030"
             echo "${API_URL}"
@@ -494,7 +488,7 @@ jobs:
             echo $static_host > $WORKSPACE_DIR/websiteurl
       - run:
           name: "Save the old bucket name if it exist"
-          shell: /bin/bash
+          shell: /bin/sh
           command: |
             # no error if existing, make parent directories as needed
             mkdir --parents $WORKSPACE_DIR
@@ -538,7 +532,7 @@ jobs:
       - run:
           name: Run Playbook and Configure server
           command: |
-            ansible-playbook -i $WORKSPACE_DIR/inventory.txt $CIRCLE_WORKING_DIRECTORY/.circleci/ansible/configure-server.yml
+            ansible-playbook -i $WORKSPACE_DIR/inventory.txt $(eval echo "$CIRCLE_WORKING_DIRECTORY/.circleci/ansible/configure-server.yml")
       # Rollback if fail
       - destroy_environment:
           stack_name: Udapeople-Frontend-$CUR_SHORT_HASH
@@ -665,12 +659,12 @@ jobs:
             # Move the compressed file to ansible folder
             ls -la $WORKSPACE_DIR
             # no error if existing, make parent directories as needed
-            mkdir --parents $CIRCLE_WORKING_DIRECTORY/.circleci/ansible/roles/deploy/files
-            mv $WORKSPACE_DIR/artifact-backend.tar.gz $CIRCLE_WORKING_DIRECTORY/.circleci/ansible/roles/deploy/files/artifact-backend.tar.gz
+            mkdir --parents $(eval echo "$CIRCLE_WORKING_DIRECTORY/.circleci/ansible/roles/deploy/files")
+            mv $WORKSPACE_DIR/artifact-backend.tar.gz $(eval echo "$CIRCLE_WORKING_DIRECTORY/.circleci/ansible/roles/deploy/files/artifact-backend.tar.gz")
       - run:
           name: "Ansible play book for deploy backend"
           command: |
-            ansible-playbook -i $WORKSPACE_DIR/inventory.txt $CIRCLE_WORKING_DIRECTORY/.circleci/ansible/deploy-backend.yml
+            ansible-playbook -i $WORKSPACE_DIR/inventory.txt $(eval echo "$CIRCLE_WORKING_DIRECTORY/.circleci/ansible/deploy-backend.yml")
       # Rollback if fail
       - revert-migrations:
           migrations-key: migration_$CUR_SHORT_HASH
