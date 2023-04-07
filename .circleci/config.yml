@@ -292,6 +292,7 @@ jobs:
           command: |
             cd $(eval echo "$CIRCLE_WORKING_DIRECTORY/$PROJECT_ROOT_DIR/backend")
             touch .env
+            echo NODE_ENV=production >> .env
             echo TYPEORM_HOST=$TYPEORM_HOST >> .env
             echo TYPEORM_CONNECTION=$TYPEORM_CONNECTION >> .env
             echo TYPEORM_DATABASE=$TYPEORM_DATABASE >> .env
@@ -684,22 +685,6 @@ jobs:
       - attach_workspace:
           at: /home/circleci/workspace
       - run:
-          name: "Backend smoke test"
-          command: |
-            API_URL=$(cat $WORKSPACE_DIR/backendpublicdns)
-            echo $API_URL
-            # When the backend server is not ready, let retry upto 30mins
-            test_result=$(eval curl --verbose --connect-timeout 60 --retry 360 --retry-delay 5 --retry-max-time 1800 --url "$API_URL/api/status")
-            if echo $test_result | grep "ok" > /dev/null
-            then
-              echo "Backend test passed"
-              echo $test_result
-              exit 0
-            else
-              echo $test_result
-              exit 1
-            fi
-      - run:
           name: Frontend smoke test.
           command: |
             static_host=$(cat $WORKSPACE_DIR/websiteurl)
@@ -709,6 +694,23 @@ jobs:
             if echo $test_result | grep "Welcome" > /dev/null
             then
               echo "Frontend test passed"
+              echo $test_result
+              exit 0
+            else
+              echo $test_result
+              exit 1
+            fi
+
+      - run:
+          name: "Backend smoke test"
+          command: |
+            API_URL=$(cat $WORKSPACE_DIR/backendpublicdns)
+            echo $API_URL
+            # When the backend server is not ready, let retry upto 30mins
+            test_result=$(eval curl --verbose --connect-timeout 60 --retry 360 --retry-delay 5 --retry-max-time 1800 --url "$API_URL/api/status")
+            if echo $test_result | grep "ok" > /dev/null
+            then
+              echo "Backend test passed"
               echo $test_result
               exit 0
             else
