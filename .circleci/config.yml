@@ -833,7 +833,6 @@ workflows:
             branches:
               only:
                 - master
-                - "cicd-final-project"
       - create-frontend-infrastructure:
           requires:
             - "create-network-infrastructure"
@@ -841,7 +840,6 @@ workflows:
             branches:
               only:
                 - master
-                - "cicd-final-project"
       - create-backend-infrastructure:
           requires:
             - "create-network-infrastructure"
@@ -849,7 +847,6 @@ workflows:
             branches:
               only:
                 - master
-                - "cicd-final-project"
       - configure-infrastructure:
           requires:
             - "create-backend-infrastructure"
@@ -857,7 +854,6 @@ workflows:
             branches:
               only:
                 - master
-                - "cicd-final-project"
       - run-migrations:
           requires:
             - "configure-infrastructure"
@@ -866,7 +862,6 @@ workflows:
             branches:
               only:
                 - master
-                - "cicd-final-project"
       - deploy-frontend:
           requires:
             - "run-migrations"
@@ -874,7 +869,6 @@ workflows:
             branches:
               only:
                 - master
-                - "cicd-final-project"
       - deploy-backend:
           requires:
             - "run-migrations"
@@ -882,7 +876,6 @@ workflows:
             branches:
               only:
                 - master
-                - "cicd-final-project"
       - smoke-test:
           requires:
             - "deploy-frontend"
@@ -891,7 +884,6 @@ workflows:
             branches:
               only:
                 - master
-                - "cicd-final-project"
       - promote-to-production:
           requires:
             - "smoke-test"
@@ -899,7 +891,6 @@ workflows:
             branches:
               only:
                 - master
-                - "cicd-final-project"
       - clean-up:
           requires:
             - "promote-to-production"
@@ -907,4 +898,3 @@ workflows:
             branches:
               only:
                 - master
-                - "cicd-final-project"
