@@ -499,28 +499,10 @@ jobs:
             # Remove prefix ending in "//"
             static_host=${host#*//}
             echo $static_host > $WORKSPACE_DIR/websiteurl
-      - run:
-          name: "Save the old bucket name if it exist"
-          shell: /bin/bash
-          command: |
-            # no error if existing, make parent directories as needed
-            mkdir --parents $WORKSPACE_DIR
-            touch $WORKSPACE_DIR/existbucket
-            bucket_info=$(aws s3 ls s3://udapeople-frontend-$PRE_SHORT_HASH 2>&1)
-            if echo $bucket_info | grep 'NoSuchBucket' > /dev/null
-            then
-              echo "Old bucket doesn't exist"
-              echo "" > $WORKSPACE_DIR/existbucket
-            else
-              old_bucket_uri=s3://udapeople-frontend-$PRE_SHORT_HASH
-              echo "Old bucket uri: $old_bucket_uri"
-              echo $old_bucket_uri > $WORKSPACE_DIR/existbucket
-            fi
       - persist_to_workspace:
           root: /home/circleci/workspace
           paths: 
             - websiteurl
-            - existbucket
       # Rollback if fail
       - destroy_environment:
           stack_name: Udapeople-Frontend-$CUR_SHORT_HASH
@@ -674,7 +656,6 @@ jobs:
           name: Deploy backend
           command: |
             # Move the compressed file to ansible folder
-            ls -la $WORKSPACE_DIR
             # no error if existing, make parent directories as needed
             mkdir --parents $(eval echo "$CIRCLE_WORKING_DIRECTORY/.circleci/ansible/roles/deploy/files")
             mv $WORKSPACE_DIR/artifact-backend.tar.gz $(eval echo "$CIRCLE_WORKING_DIRECTORY/.circleci/ansible/roles/deploy/files/artifact-backend.tar.gz")
@@ -789,7 +770,6 @@ jobs:
                   --no-paginate --output text
               )
             )
-            echo Stack names: ${STACKS[@]}
             for stack in ${STACKS[@]}
             do
               if [[ ! "$stack" =~ "$CUR_SHORT_HASH" ]] && [[ ! "$stack" =~ "Final-Project" ]]
@@ -797,18 +777,15 @@ jobs:
                 if [[ "$stack" =~ "Frontend" ]]
                 then
                   touch $WORKSPACE_DIR/destroyfrontendstack
-                  echo "Frontend stack is $stack"
                   echo $stack > $WORKSPACE_DIR/destroyfrontendstack
                   touch $WORKSPACE_DIR/destroybucketname
                   # Set stack name lowercase as a bucket name
                   bucket_name=$(eval echo $stack | tr '[:upper:]' '[:lower:]')
-                  echo "Bucket name is $bucket_name"
                   echo $bucket_name > $WORKSPACE_DIR/destroybucketname
                 fi
                 if [[ "$stack" =~ "Backend" ]]
                 then
                   touch $WORKSPACE_DIR/destroybackendstack
-                  echo "Backend stack is $stack"
                   echo $stack > $WORKSPACE_DIR/destroybackendstack
                 fi
               fi
