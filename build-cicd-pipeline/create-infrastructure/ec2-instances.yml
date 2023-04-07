@@ -9,7 +9,7 @@ Parameters:
 
 Resources:
     EC2Instance1a:
-        Type: AWS::EC2::Instances
+        Type: AWS::EC2::Instance
         Properties:
             NetworkInterfaces:
                 -   DeviceIndex: "0"
