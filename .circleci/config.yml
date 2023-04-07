@@ -695,7 +695,7 @@ jobs:
             then
               echo "Frontend test passed"
               echo $test_result
-              exit 1
+              exit 0
             else
               echo $test_result
               exit 1
