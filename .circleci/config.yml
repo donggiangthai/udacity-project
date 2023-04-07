@@ -735,13 +735,13 @@ jobs:
               exit 1
             fi
       # Rollback if fail
-      # - revert-migrations:
-      #     migrations-key: migration_$CUR_SHORT_HASH
-      # - destroy_environment:
-      #     stack_name: Udapeople-Frontend-$CUR_SHORT_HASH
-      #     bucket_name: udapeople-frontend-$CUR_SHORT_HASH
-      # - destroy_environment:
-      #     stack_name: Udapeople-Backend-$CUR_SHORT_HASH
+      - revert-migrations:
+          migrations-key: migration_$CUR_SHORT_HASH
+      - destroy_environment:
+          stack_name: Udapeople-Frontend-$CUR_SHORT_HASH
+          bucket_name: udapeople-frontend-$CUR_SHORT_HASH
+      - destroy_environment:
+          stack_name: Udapeople-Backend-$CUR_SHORT_HASH
 
   promote-to-production:
     executor: aws-cli/default
