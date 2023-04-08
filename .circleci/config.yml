@@ -530,6 +530,7 @@ jobs:
       # Rollback if fail
       - destroy_environment:
           stack_name: Udapeople-Frontend-$CUR_SHORT_HASH
+          bucket_name: udapeople-frontend-$CUR_SHORT_HASH
       - destroy_environment:
           stack_name: Udapeople-Backend-$CUR_SHORT_HASH
 
@@ -771,8 +772,8 @@ jobs:
             export STACKS=(
               $(aws cloudformation list-stacks \
                   --query "StackSummaries[*].StackName" \
-                  --stack-status-filter CREATE_COMPLETE \
-                  --no-paginate --output text
+                  --no-paginate --output text \
+                  --stack-status-filter CREATE_COMPLETE UPDATE_COMPLETE
               )
             )
             for stack in ${STACKS[@]}
