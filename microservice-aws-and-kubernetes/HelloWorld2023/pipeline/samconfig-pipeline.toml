@@ -1,0 +1,47 @@
+version = 0.1
+
+[1]
+[1.global]
+[1.global.parameters]
+stack_name = "HelloWorldNonProd"
+s3_prefix = "HelloWorldNonProd"
+s3_bucket = "aws-sam-cli-managed-non-prod-pipe-artifactsbucket-p1mmiqe675gt"
+region = "us-east-1"
+image_repository = "858627583012.dkr.ecr.us-east-1.amazonaws.com/aws-sam-cli-managed-non-prod-pipeline-resources-imagerepository-nssrp9x9cvw8"
+
+[1.deploy]
+[1.deploy.parameters]
+template = "packaged-testing.yaml"
+fail_on_empty_changeset = false
+capabilities = "CAPABILITY_IAM"
+# parameter_overrides = ""
+
+# ############################################## #
+
+[2]
+[2.global]
+[2.global.parameters]
+stack_name = "HelloWorldProd"
+s3_prefix = "HelloWorldProd"
+s3_bucket = "aws-sam-cli-managed-prod-pipeline-artifactsbucket-1k3ryldabk96f"
+region = "us-east-1"
+image_repository = "858627583012.dkr.ecr.us-east-1.amazonaws.com/aws-sam-cli-managed-prod-pipeline-resources-imagerepository-ymxz3ih3wkex"
+
+[2.deploy]
+[2.deploy.parameters]
+template = "packaged-prod.yaml"
+fail_on_empty_changeset = false
+capabilities = "CAPABILITY_IAM"
+# parameter_overrides = ""
+
+# ############################################## #
+
+[pipeline]
+[pipeline.deploy]
+[pipeline.deploy.parameters]
+stack_name = "HelloWorld2023"
+s3_prefix = "HelloWorld2023"
+resolve_s3 = true
+fail_on_empty_changeset = false
+template = "codepipeline.yaml"
+capabilities = "CAPABILITY_IAM"
