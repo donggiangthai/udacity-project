@@ -1,4 +1,4 @@
-<include a CircleCI status badge, here>
+[![donggiangthai](https://circleci.com/gh/donggiangthai/udacity-project.svg?style=svg)](https://app.circleci.com/pipelines/github/donggiangthai/udacity-project)
 
 ## Project Overview
 
@@ -24,6 +24,21 @@ You can find a detailed [project rubric, here](https://review.udacity.com/#!/rub
 ---
 
 ## Setup the Environment
+
+* Install Python3.7
+```bash
+sudo apt install libssl-dev libncurses5-dev libsqlite3-dev libreadline-dev libtk8.6 libgdm-dev libdb4o-cil-dev libpcap-dev
+cd ~
+wget https://www.python.org/ftp/python/3.7.3/Python-3.7.3.tar.xz
+tar xvf Python-3.7.3.tar.xz
+cd Python-3.7.3
+./configure
+sudo make
+# Regularly common way is make install
+# sudo make install
+# Or using make altinstall to avoid override the existing Python lower version
+sudo make altinstall
+```
 
 * Create a virtualenv with Python 3.7 and activate it. Refer to this link for help on specifying the Python version in the virtualenv. 
 ```bash
