@@ -16,7 +16,7 @@ install:
 	pip install --require-virtualenv -r requirements.txt
 	# Install hadolint latest verion (Current is 2.12.0)
 	wget --progress=dot:giga https://github.com/hadolint/hadolint/releases/download/v2.12.0/hadolint-Linux-arm64
-	sudo cp hadolint-Linux-arm64 /usr/local/bin/hadolint
+	cp hadolint-Linux-arm64 /usr/local/bin/hadolint
 	rm hadolint-Linux-arm64
 
 test:
