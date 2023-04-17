@@ -7,17 +7,21 @@
 
 setup:
 	# Create python virtualenv & source it
-	# source ~/.devops/bin/activate
-	python3 -m venv ~/.devops
+	pip install virtualenv
+	virtualenv .devops --python python3
 
 install:
 	# This should be run from inside a virtualenv
-	pip install --upgrade pip &&\
-		pip install -r requirements.txt
+	pip install --upgrade pip && \
+	pip install --require-virtualenv -r requirements.txt
+	# Install hadolint latest verion (Current is 2.12.0)
+	wget --progress=dot:giga https://github.com/hadolint/hadolint/releases/download/v2.12.0/hadolint-Linux-arm64
+	sudo cp hadolint-Linux-arm64 /usr/local/bin/hadolint
+	rm hadolint-Linux-arm64
 
 test:
 	# Additional, optional, tests could go here
-	#python -m pytest -vv --cov=myrepolib tests/*.py
+	pytest -vv tests/*.py
 	#python -m pytest --nbval notebook.ipynb
 
 lint:
