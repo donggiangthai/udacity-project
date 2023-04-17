@@ -14,10 +14,6 @@ install:
 	# This should be run from inside a virtualenv
 	pip install --upgrade pip && \
 	pip install --require-virtualenv -r requirements.txt
-	# Install hadolint latest verion (Current is 2.12.0)
-	wget --progress=dot:giga https://github.com/hadolint/hadolint/releases/download/v2.12.0/hadolint-Linux-arm64
-	cp hadolint-Linux-arm64 /usr/local/bin/hadolint
-	rm hadolint-Linux-arm64
 
 test:
 	# Additional, optional, tests could go here
@@ -27,7 +23,7 @@ test:
 lint:
 	# See local hadolint install instructions:   https://github.com/hadolint/hadolint
 	# This is linter for Dockerfiles
-	hadolint Dockerfile
+	docker run --rm -i hadolint/hadolint < Dockerfile
 	# This is a linter for Python source code linter: https://www.pylint.org/
 	# This should be run from inside a virtualenv
 	pylint --disable=R,C,W1203,W1202 app.py

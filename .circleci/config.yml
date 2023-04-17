@@ -52,6 +52,7 @@ jobs:
             . .devops/bin/activate
             make test
       # run lints!
+      - setup_remote_docker
       - run:
           name: run lint
           command: |
